@@ -1,0 +1,24 @@
+@import "tailwindcss";
+@theme { --font-sans: "Plus Jakarta Sans", sans-serif; } 
+
+/*
+  Splash screen loop (2.2s cycle):
+  - 0%        Logo hidden (sunk into orange), tagline visible
+  - 0-13.6%   holds hidden
+  - 13.6-50%  logo slides down, joins tagline (linear)
+  - 50-86.36% holds joined
+  - 86.36-100% logo slides back up, sinks into orange again (ease-out)
+  - repeats
+*/
+
+@keyframes logo-breathe {
+  0%, 30.36% { transform: translateY(-130px); animation-timing-function: linear; }
+  50%, 78.36% { transform: translateY(0); animation-timing-function: ease-out; }
+  100% { transform: translateY(-130px); }
+}
+
+@keyframes tagline-breathe {
+  0%, 30.36% { transform: translateY(73px); animation-timing-function: linear; }
+  50%, 78.36% { transform: translateY(0); animation-timing-function: ease-out; }
+  100% { transform: translateY(73px); }
+}
