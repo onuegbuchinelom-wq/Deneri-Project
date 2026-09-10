@@ -2,6 +2,12 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Splash from "./Pages/Splash";
 import Welcome from "./Pages/Welcome";
 import SignUp from "./Pages/SignUp";
+import Signup2 from "./Pages/Signup2";
+import Login from "./Pages/Login";
+import Verify from "./Pages/Verify";
+import ForgotPassword from "./Pages/ForgotPassword";
+import SetupPin from "./Pages/SetupPin";
+import EnterPin from "./Pages/EnterPin";
 
 function App() {
   return (
@@ -10,7 +16,13 @@ function App() {
         <Route path="/" element={<Splash />} />
         <Route path="/welcome" element={<Welcome />} />
         <Route path="/signup" element={<SignUp />} />
-        {/* More routes go here as we build them: /login, /verify, etc. */}
+        <Route path="/signup2" element={<Signup2 />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/verify" element={<Verify />} />
+        <Route path="/setup-pin" element={<SetupPin />} />
+        <Route path="/enter-pin" element={<EnterPin />} />
+        {/* More routes go here as we build them */}
       </Routes>
     </BrowserRouter>
   );

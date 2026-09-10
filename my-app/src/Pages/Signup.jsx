@@ -1,108 +1,126 @@
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import heroImage from "../assets/denari-hero.png";
+import "@fontsource/plus-jakarta-sans/400.css";
+import "@fontsource/plus-jakarta-sans/600.css";
 
-/**
- * Denari — Sign Up page
- *
- * Route this at /signup in App.jsx:
- *   import SignUp from "./Pages/SignUp";
- *   <Route path="/signup" element={<SignUp />} />
- *   <Route path="/verify" element={<Verify />} /> — the Next button links here.
- *
- * The hero image is imported from src/assets/denari-hero.png — the plain,
- * full-brightness lobby photo (no fade or wave overlay), matching the
- * actual Sign Up mockup. If you'd rather keep it in the public folder
- * instead, drop the import above and use a plain string path like
- * "/assets/denari-hero.png".
- */
 
 export default function SignUp() {
-  const [form, setForm] = useState({ fullName: "", email: "", phone: "" });
-  const [errors, setErrors] = useState({});
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const navigate = useNavigate();
 
-  const update = (field) => (e) =>
-    setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  function handleSubmit(e) {
+    e.preventDefault();
 
-  const validate = () => {
-    const next = {};
-    if (!form.fullName.trim()) next.fullName = "Enter your full name";
-    if (!/^\S+@\S+\.\S+$/.test(form.email)) next.email = "Enter a valid email";
-    if (!/^[\d+()\-\s]{7,}$/.test(form.phone)) next.phone = "Enter a valid phone number";
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  };
-
-  // NavLink still navigates like a normal link, but we block it here
-  // (preventDefault) until the fields pass validation.
-  const handleNextClick = (e) => {
-    if (!validate()) {
-      e.preventDefault();
+    if (fullName.trim() === "") {
+      alert("Please enter your full name");
       return;
     }
-    // TODO: send `form` to your API / auth flow here before moving on.
-  };
+    if (email === "") {
+      alert("Please enter your email");
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      alert("Please enter a valid email address");
+      return;
+    }
+    if (phone === "") {
+      alert("Please enter your phone number");
+      return;
+    }
+    if (!/^[\d+()\-\s]{7,}$/.test(phone)) {
+      alert("Please enter a valid phone number");
+      return;
+    }
+
+    // TODO: send { fullName, email, phone } to your API here.
+    navigate("/signup2", { state: { fullName, email, phone } });
+  }
 
   return (
-    <div className="min-h-screen w-full bg-white flex flex-col md:flex-row">
+    <div className="h-screen w-full bg-white flex flex-col md:flex-row overflow-hidden">
       {/* Left — form */}
-      <div className="w-full md:w-1/2 flex items-center justify-center px-8 py-12 md:px-20 lg:px-24">
+      <div className="w-full md:w-1/2 flex items-center justify-center px-8 py-6 md:px-20 lg:px-24">
         <div className="w-full max-w-lg">
-          <h1 className="text-5xl lg:text-6xl font-bold text-neutral-900 mb-14">
+          <h1 className="text-4xl lg:text-5xl font-bold text-neutral-900 mb-8">
             Sign up
           </h1>
 
-          <div className="space-y-8">
-            <Field
-              label="Full Name"
-              name="fullName"
-              placeholder="Enter your full name"
-              value={form.fullName}
-              onChange={update("fullName")}
-              error={errors.fullName}
-              autoComplete="name"
-            />
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label
+                htmlFor="fullName"
+                className="block text-base font-semibold text-neutral-900 mb-2"
+              >
+                Full Name
+              </label>
+              <input
+                id="fullName"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                type="text"
+                placeholder="Enter your full name"
+                className="w-full rounded-full border border-neutral-300 px-6 py-3.5
+                           text-base text-neutral-800 placeholder:text-neutral-400
+                           focus:outline-none focus:ring-2 focus:ring-orange-400"
+              />
+            </div>
 
-            <Field
-              label="Email"
-              name="email"
-              type="email"
-              placeholder="Enter your Email address"
-              value={form.email}
-              onChange={update("email")}
-              error={errors.email}
-              autoComplete="email"
-            />
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-base font-semibold text-neutral-900 mb-2"
+              >
+                Email
+              </label>
+              <input
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                type="email"
+                placeholder="Enter your Email address"
+                className="w-full rounded-full border border-neutral-300 px-6 py-3.5
+                           text-base text-neutral-800 placeholder:text-neutral-400
+                           focus:outline-none focus:ring-2 focus:ring-orange-400"
+              />
+            </div>
 
-            <Field
-              label="Phone number"
-              name="phone"
-              type="tel"
-              placeholder="Enter your phone number"
-              value={form.phone}
-              onChange={update("phone")}
-              error={errors.phone}
-              autoComplete="tel"
-            />
+            <div>
+              <label
+                htmlFor="phone"
+                className="block text-base font-semibold text-neutral-900 mb-2"
+              >
+                Phone number
+              </label>
+              <input
+                id="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                type="tel"
+                placeholder="Enter your phone number"
+                className="w-full rounded-full border border-neutral-300 px-6 py-3.5
+                           text-base text-neutral-800 placeholder:text-neutral-400
+                           focus:outline-none focus:ring-2 focus:ring-orange-400"
+              />
+            </div>
 
-            <NavLink
-              to="/verify"
-              state={form}
-              onClick={handleNextClick}
-              className="block w-full mt-6 rounded-full bg-orange-500 hover:bg-orange-600
-                         active:bg-orange-700 transition-colors text-white text-xl
-                         font-semibold py-5 text-center focus:outline-none
-                         focus-visible:ring-2 focus-visible:ring-orange-400
-                         focus-visible:ring-offset-2"
+            <button
+              type="submit"
+              className="w-full mt-4 rounded-full bg-orange-500 hover:bg-orange-600
+                         active:bg-orange-700 transition-colors text-white text-lg
+                         font-semibold py-4 focus:outline-none focus-visible:ring-2
+                         focus-visible:ring-orange-400 focus-visible:ring-offset-2"
             >
               Next
-            </NavLink>
-          </div>
+            </button>
+          </form>
         </div>
       </div>
 
       {/* Right — hero image: inset rounded card with white margin, not full-bleed */}
-      <div className="hidden md:flex md:w-1/2 items-stretch py-8 pr-8">
+      <div className="hidden md:flex md:w-1/2 items-stretch py-6 pr-6">
         <div className="w-full rounded-3xl overflow-hidden">
           <img
             src={heroImage}
@@ -112,23 +130,5 @@ export default function SignUp() {
         </div>
       </div>
     </div>
-  );
-}
-
-function Field({ label, error, ...inputProps }) {
-  return (
-    <label className="block">
-      <span className="block text-lg font-semibold text-neutral-900 mb-3">
-        {label}
-      </span>
-      <input
-        {...inputProps}
-        className={`w-full rounded-full border px-6 py-4 text-lg text-neutral-800
-                    placeholder:text-neutral-400 focus:outline-none
-                    focus:ring-2 focus:ring-orange-400
-                    ${error ? "border-red-400" : "border-neutral-300"}`}
-      />
-      {error && <span className="mt-1 block text-sm text-red-500">{error}</span>}
-    </label>
   );
 }

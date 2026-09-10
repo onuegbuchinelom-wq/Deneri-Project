@@ -24,7 +24,7 @@ function Splash() {
           className="absolute inset-0 h-full w-full animate-[logo-breathe_2.8s_ease-out_infinite]"
         />
       </div>
-      <p className="relative left-[68.50px] h-[60px] w-[312px] max-w-full text-left text-[24px] font-semibold
+      <p className="relative left-[68.50px] h-[60px] w-[312px] max-w-full text-left text-[18px] font-semibold
        leading-normal text-[#FFF6F6] animate-[tagline-breathe_2.8s_ease-out_infinite]">
         Take control of your money <br />build your tomorrow
       </p>
