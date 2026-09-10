@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { auth } from "../config/firebase";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import heroImage from "../assets/denari-hero.png";
 import "@fontsource/plus-jakarta-sans/400.css";
 import "@fontsource/plus-jakarta-sans/600.css";
@@ -37,11 +39,13 @@ export default function Signup2() {
 
     setIsSubmitting(true);
     try {
-      // TODO: send { fullName, email, phone, password } to your API here.
-      // await api.signUp({ fullName, email, phone, password });
-      navigate("/welcome", { state: { fullName, email, phone } });
+      await createUserWithEmailAndPassword(auth, email, password);
+      // Account created with email/password. Phone still needs to be
+      // verified next — that happens on the Verify OTP screen using
+      // linkWithPhoneNumber, since the user is now signed in.
+      navigate("/verify", { state: { fullName, email, phone } });
     } catch (err) {
-      alert("Something went wrong. Please try again.");
+      alert(err.message); // e.g. "email already in use", "weak password"
       setIsSubmitting(false);
     }
   }
@@ -167,9 +171,33 @@ export default function Signup2() {
   );
 }
 
+function Spinner() {
+  return (
+    <svg
+      className="animate-spin h-5 w-5 text-white"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+      />
+    </svg>
+  );
+}
+
 function EyeIcon({ open }) {
   if (open) {
-    // eye with a slash — password currently visible, click to hide
     return (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <path

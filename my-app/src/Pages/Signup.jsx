@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
 import heroImage from "../assets/denari-hero.png";
 import "@fontsource/plus-jakarta-sans/400.css";
 import "@fontsource/plus-jakarta-sans/600.css";
 
-
 export default function SignUp() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(""); // will hold E.164 format, e.g. +2348133901794
   const navigate = useNavigate();
 
   function handleSubmit(e) {
@@ -26,12 +27,8 @@ export default function SignUp() {
       alert("Please enter a valid email address");
       return;
     }
-    if (phone === "") {
+    if (!phone) {
       alert("Please enter your phone number");
-      return;
-    }
-    if (!/^[\d+()\-\s]{7,}$/.test(phone)) {
-      alert("Please enter a valid phone number");
       return;
     }
 
@@ -94,15 +91,16 @@ export default function SignUp() {
               >
                 Phone number
               </label>
-              <input
+              <PhoneInput
                 id="phone"
+                international
+                defaultCountry="NG"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                type="tel"
+                onChange={setPhone}
                 placeholder="Enter your phone number"
-                className="w-full rounded-full border border-neutral-300 px-6 py-3.5
-                           text-base text-neutral-800 placeholder:text-neutral-400
-                           focus:outline-none focus:ring-2 focus:ring-orange-400"
+                className="denari-phone-input w-full rounded-full border border-neutral-300 px-6 py-3.5
+                           text-base text-neutral-800
+                           focus-within:ring-2 focus-within:ring-orange-400"
               />
             </div>
 

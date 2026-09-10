@@ -1,0 +1,9 @@
+.denari-phone-input .PhoneInputInput {
+  border: none;
+  outline: none;
+  font-size: 1rem;
+  background: transparent;
+}
+.denari-phone-input .PhoneInputCountry {
+  margin-right: 0.75rem;
+}

@@ -1,16 +1,20 @@
 import { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { auth } from "../Config/firebase";
+import { getFirestore, doc, setDoc } from "firebase/firestore";
 import heroImage from "../assets/denari-hero.png";
 import "@fontsource/plus-jakarta-sans/400.css";
 import "@fontsource/plus-jakarta-sans/600.css";
-
 
 const PIN_LENGTH = 4;
 
 export default function SetupPin() {
   const [digits, setDigits] = useState(Array(PIN_LENGTH).fill(""));
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRefs = useRef([]);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { fullName, email, phone } = location.state || {};
 
   function handleChange(index, rawValue) {
     const value = rawValue.replace(/[^0-9]/g, "").slice(-1);
@@ -44,7 +48,7 @@ export default function SetupPin() {
     inputRefs.current[lastFilled]?.focus();
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
 
     const pin = digits.join("");
@@ -53,8 +57,18 @@ export default function SetupPin() {
       return;
     }
 
-    // TODO: send { pin } to your API here to secure the account.
-    navigate("/home");
+    setIsSubmitting(true);
+    try {
+      await setDoc(
+        doc(getFirestore(), "users", auth.currentUser.uid),
+        { pin },
+        { merge: true }
+      );
+      navigate("/choose-currency", { state: { fullName, email, phone } });
+    } catch (err) {
+      alert(err.message);
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -87,23 +101,27 @@ export default function SetupPin() {
                   value={digit}
                   onChange={(e) => handleChange(index, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(index, e)}
+                  disabled={isSubmitting}
                   aria-label={`Pin digit ${index + 1}`}
                   className="w-16 h-16  border border-neutral-400
                              text-center text-2xl text-neutral-800
                              placeholder:text-orange-400
-                             focus:outline-none focus:ring-2 focus:ring-orange-400"
+                             focus:outline-none focus:ring-2 focus:ring-orange-400
+                             disabled:bg-neutral-50"
                 />
               ))}
             </div>
 
             <button
               type="submit"
+              disabled={isSubmitting}
               className="w-full mt-40 rounded-full bg-orange-500 hover:bg-orange-600
                          active:bg-orange-700 transition-colors text-white text-lg
                          font-semibold py-4 focus:outline-none focus-visible:ring-2
-                         focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+                         focus-visible:ring-orange-400 focus-visible:ring-offset-2
+                         disabled:bg-orange-300 disabled:cursor-not-allowed"
             >
-              Continue
+              {isSubmitting ? "Saving…" : "Continue"}
             </button>
           </form>
         </div>

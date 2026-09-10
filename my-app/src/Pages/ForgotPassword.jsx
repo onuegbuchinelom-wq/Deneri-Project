@@ -1,23 +1,40 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { auth } from "../config/firebase";
+import { sendPasswordResetEmail } from "firebase/auth";
 import heroImage from "../assets/denari-hero.png";
 import "@fontsource/plus-jakarta-sans/400.css";
 import "@fontsource/plus-jakarta-sans/600.css";
 
 export default function ForgotPassword() {
   const [identifier, setIdentifier] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sent, setSent] = useState(false);
 
   const navigate = useNavigate();
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
 
     if (identifier.trim() === "") {
-      alert("Please enter your email or phone number");
+      alert("Please enter your email address");
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(identifier)) {
+      alert("Password reset only works with an email address, not a phone number");
       return;
     }
 
-    // TODO: send { identifier } to your API here to trigger the reset email.
+    setIsSubmitting(true);
+    try {
+      await sendPasswordResetEmail(auth, identifier);
+      setSent(true);
+    } catch (err) {
+      // Firebase gives specific error codes here (e.g. auth/user-not-found)
+      alert(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -34,53 +51,80 @@ export default function ForgotPassword() {
             and we&apos;ll send you a reset link
           </p>
 
-          <form onSubmit={handleSubmit} className="space-y-8 text-left">
-            <div>
-              <label
-                htmlFor="identifier"
-                className="block text-base font-semibold text-neutral-900 mb-2"
-              >
-                Email or Phone number
-              </label>
-              <input
-                id="identifier"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                type="text"
-                placeholder="Enter Email or  phone number"
-                className="w-full rounded-full border border-neutral-300 px-6 py-3.5
-                           text-base text-neutral-800 placeholder:text-neutral-400
-                           focus:outline-none focus:ring-2 focus:ring-orange-400"
-              />
-            </div>
-
-            <div className="flex justify-center">
-              <EnvelopeIcon />
-            </div>
-
-            <div className="space-y-4">
+          {sent ? (
+            <div className="space-y-8">
+              <div className="flex justify-center">
+                <EnvelopeIcon />
+              </div>
+              <p className="text-neutral-700">
+                If an account exists for <strong>{identifier}</strong>, a
+                reset link has been sent. Check your inbox.
+              </p>
               <button
-                type="submit"
+                type="button"
+                onClick={() => navigate("/login")}
                 className="w-full rounded-full bg-orange-500 hover:bg-orange-600
                            active:bg-orange-700 transition-colors text-white text-lg
                            font-semibold py-4 focus:outline-none focus-visible:ring-2
                            focus-visible:ring-orange-400 focus-visible:ring-offset-2"
               >
-                Send Reset Link
+                Back to Log in
               </button>
-
-              <div className="text-center">
-                <button
-                  type="button"
-                  onClick={() => navigate("/login")}
-                  className="text-orange-500 font-medium underline hover:text-orange-600
-                             focus:outline-none"
-                >
-                  Back to Log in
-                </button>
-              </div>
             </div>
-          </form>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-8 text-left">
+              <div>
+                <label
+                  htmlFor="identifier"
+                  className="block text-base font-semibold text-neutral-900 mb-2"
+                >
+                  Email
+                </label>
+                <input
+                  id="identifier"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  type="email"
+                  placeholder="Enter your email"
+                  disabled={isSubmitting}
+                  className="w-full rounded-full border border-neutral-300 px-6 py-3.5
+                             text-base text-neutral-800 placeholder:text-neutral-400
+                             focus:outline-none focus:ring-2 focus:ring-orange-400
+                             disabled:bg-neutral-50 disabled:text-neutral-400"
+                />
+              </div>
+
+              <div className="flex justify-center">
+                <EnvelopeIcon />
+              </div>
+
+              <div className="space-y-4">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full rounded-full bg-orange-500 hover:bg-orange-600
+                             active:bg-orange-700 transition-colors text-white text-lg
+                             font-semibold py-4 focus:outline-none focus-visible:ring-2
+                             focus-visible:ring-orange-400 focus-visible:ring-offset-2
+                             disabled:bg-orange-300 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? "Sending…" : "Send Reset Link"}
+                </button>
+
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/login")}
+                    disabled={isSubmitting}
+                    className="text-orange-500 font-medium underline hover:text-orange-600
+                               focus:outline-none disabled:opacity-40"
+                  >
+                    Back to Log in
+                  </button>
+                </div>
+              </div>
+            </form>
+          )}
         </div>
       </div>
 

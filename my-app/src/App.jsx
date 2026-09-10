@@ -8,6 +8,10 @@ import Verify from "./Pages/Verify";
 import ForgotPassword from "./Pages/ForgotPassword";
 import SetupPin from "./Pages/SetupPin";
 import EnterPin from "./Pages/EnterPin";
+import ChooseCurrency from "./Pages/ChooseCurrency";
+import PersonalInfo from "./Pages/PersonalInfo";
+import AccountCreated from "./Pages/AccountCreated";
+import Dashboard from "./Pages/Dashboard";
 
 function App() {
   return (
@@ -22,6 +26,10 @@ function App() {
         <Route path="/verify" element={<Verify />} />
         <Route path="/setup-pin" element={<SetupPin />} />
         <Route path="/enter-pin" element={<EnterPin />} />
+        <Route path="/choose-currency" element={<ChooseCurrency />} />
+        <Route path="/personal-info" element={<PersonalInfo />} />
+        <Route path="/account-created" element={<AccountCreated />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         {/* More routes go here as we build them */}
       </Routes>
     </BrowserRouter>

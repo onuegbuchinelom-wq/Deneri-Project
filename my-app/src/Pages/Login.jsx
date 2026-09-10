@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { auth } from "../Config/firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import heroImage from "../assets/denari-hero.png";
 import "@fontsource/plus-jakarta-sans/400.css";
 import "@fontsource/plus-jakarta-sans/600.css";
@@ -26,11 +28,10 @@ export default function Login() {
 
     setIsSubmitting(true);
     try {
-      // TODO: send { identifier, password } to your API here.
-      // await api.login({ identifier, password });
-      navigate("/welcome");
+      await signInWithEmailAndPassword(auth, identifier, password);
+      navigate("/dashboard");
     } catch (err) {
-      alert("Something went wrong. Please try again.");
+      alert(err.message); // e.g. "invalid credential", "user not found"
       setIsSubmitting(false);
     }
   }
@@ -106,8 +107,9 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => navigate("/forgot-password")}
+                disabled={isSubmitting}
                 className="text-orange-500 font-medium hover:text-orange-600
-                           focus:outline-none"
+                           focus:outline-none disabled:opacity-40"
               >
                 Forgot password?
               </button>
@@ -115,12 +117,14 @@ export default function Login() {
 
             <button
               type="submit"
+              disabled={isSubmitting}
               className="w-full mt-2 rounded-full bg-orange-500 hover:bg-orange-600
                          active:bg-orange-700 transition-colors text-white text-lg
                          font-semibold py-4 focus:outline-none focus-visible:ring-2
-                         focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+                         focus-visible:ring-orange-400 focus-visible:ring-offset-2
+                         disabled:bg-orange-300 disabled:cursor-not-allowed"
             >
-              Get Started
+              {isSubmitting ? "Logging in…" : "Get Started"}
             </button>
 
             <p className="text-center text-neutral-700">
@@ -128,8 +132,9 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => navigate("/signup")}
+                disabled={isSubmitting}
                 className="text-orange-500 font-semibold hover:text-orange-600
-                           focus:outline-none"
+                           focus:outline-none disabled:opacity-40"
               >
                 Sign up
               </button>
@@ -154,7 +159,6 @@ export default function Login() {
 
 function EyeIcon({ open }) {
   if (open) {
-    // eye with a slash — password currently visible, click to hide
     return (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <path

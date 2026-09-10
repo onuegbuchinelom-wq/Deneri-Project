@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { auth } from "../config/firebase";
+import { RecaptchaVerifier, linkWithPhoneNumber } from "firebase/auth";
 import heroImage from "../assets/denari-hero.png";
 import "@fontsource/plus-jakarta-sans/400.css";
 import "@fontsource/plus-jakarta-sans/600.css";
@@ -7,12 +9,30 @@ import "@fontsource/plus-jakarta-sans/600.css";
 const CODE_LENGTH = 6;
 const RESEND_SECONDS = 90;
 
-export default function Verify({ phoneNumber = "+234 8133901794" }) {
+export default function Verify() {
   const [digits, setDigits] = useState(Array(CODE_LENGTH).fill(""));
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
+  const [confirmationResult, setConfirmationResult] = useState(null);
+  const [isSending, setIsSending] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [error, setError] = useState("");
+
   const inputsRef = useRef([]);
+  const recaptchaRef = useRef(null);
 
   const navigate = useNavigate();
+  const location = useLocation();
+  const { fullName, email, phone } = location.state || {};
+
+  // Send the OTP automatically once, when the page loads
+  useEffect(() => {
+    if (!phone) {
+      setError("No phone number found. Please go back and sign up again.");
+      return;
+    }
+    sendCode();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (secondsLeft <= 0) return;
@@ -22,6 +42,28 @@ export default function Verify({ phoneNumber = "+234 8133901794" }) {
 
   const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
   const seconds = String(secondsLeft % 60).padStart(2, "0");
+
+  async function sendCode() {
+    setError("");
+    setIsSending(true);
+    try {
+      if (!recaptchaRef.current) {
+        recaptchaRef.current = new RecaptchaVerifier(auth, "recaptcha-container", {
+          size: "invisible",
+        });
+      }
+      const result = await linkWithPhoneNumber(
+        auth.currentUser,
+        phone,
+        recaptchaRef.current
+      );
+      setConfirmationResult(result);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsSending(false);
+    }
+  }
 
   function handleChange(e, index) {
     const value = e.target.value.replace(/[^0-9]/g, "");
@@ -70,16 +112,27 @@ export default function Verify({ phoneNumber = "+234 8133901794" }) {
     inputsRef.current[lastIndex]?.focus();
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     const code = digits.join("");
     if (code.length < CODE_LENGTH) {
       alert("Please enter the full 6-digit code");
       return;
     }
+    if (!confirmationResult) {
+      setError("Code hasn't been sent yet. Please wait or tap resend.");
+      return;
+    }
 
-    // TODO: send { code, phoneNumber } to your API here to verify the OTP.
-    // On success, e.g.: navigate("/login");
+    setError("");
+    setIsVerifying(true);
+    try {
+      await confirmationResult.confirm(code);
+      navigate("/setup-pin", { state: { fullName, email, phone } });
+    } catch (err) {
+      setError(err.message); // e.g. "invalid verification code"
+      setIsVerifying(false);
+    }
   }
 
   function handleResend() {
@@ -87,7 +140,7 @@ export default function Verify({ phoneNumber = "+234 8133901794" }) {
     setDigits(Array(CODE_LENGTH).fill(""));
     setSecondsLeft(RESEND_SECONDS);
     inputsRef.current[0]?.focus();
-    // TODO: call your API here to resend the code.
+    sendCode();
   }
 
   return (
@@ -101,8 +154,14 @@ export default function Verify({ phoneNumber = "+234 8133901794" }) {
           <p className="text-lg text-neutral-600 mb-10">
             Enter the 6-digit code sent to
             <br />
-            <span className="text-orange-500 font-medium">{phoneNumber}</span>
+            <span className="text-orange-500 font-medium">
+              {phone || "your phone"}
+            </span>
           </p>
+
+          {error && (
+            <p className="text-red-500 text-sm mb-4">{error}</p>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-8">
             <div
@@ -119,11 +178,12 @@ export default function Verify({ phoneNumber = "+234 8133901794" }) {
                   type="text"
                   inputMode="numeric"
                   maxLength={1}
+                  disabled={isVerifying}
                   aria-label={`Digit ${index + 1}`}
                   className="w-12 h-14 md:w-14 md:h-16 rounded-xl border border-orange-300
                              text-center text-xl font-semibold text-neutral-800
                              focus:outline-none focus:ring-2 focus:ring-orange-400
-                             focus:border-orange-400"
+                             focus:border-orange-400 disabled:bg-neutral-50"
                 />
               ))}
             </div>
@@ -140,28 +200,33 @@ export default function Verify({ phoneNumber = "+234 8133901794" }) {
                 <button
                   type="button"
                   onClick={handleResend}
-                  disabled={secondsLeft > 0}
+                  disabled={secondsLeft > 0 || isSending}
                   className={`font-medium underline focus:outline-none ${
-                    secondsLeft > 0
+                    secondsLeft > 0 || isSending
                       ? "text-neutral-400 cursor-not-allowed no-underline"
                       : "text-orange-500 hover:text-orange-600"
                   }`}
                 >
-                  Resend
+                  {isSending ? "Sending…" : "Resend"}
                 </button>
               </p>
             </div>
 
             <button
               type="submit"
+              disabled={isVerifying}
               className="w-full rounded-full bg-orange-500 hover:bg-orange-600
                          active:bg-orange-700 transition-colors text-white text-lg
                          font-semibold py-4 focus:outline-none focus-visible:ring-2
-                         focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+                         focus-visible:ring-orange-400 focus-visible:ring-offset-2
+                         disabled:bg-orange-300 disabled:cursor-not-allowed"
             >
-              Verify and Continue
+              {isVerifying ? "Verifying…" : "Verify and Continue"}
             </button>
           </form>
+
+          {/* Required invisible container for RecaptchaVerifier */}
+          <div id="recaptcha-container" />
         </div>
       </div>
 
