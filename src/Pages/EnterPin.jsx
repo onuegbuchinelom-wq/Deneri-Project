@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth } from "../config/firebase";
+import { auth } from "../Config/firebase";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 import logo from "../assets/denari-logo.png.png";
 import "@fontsource/plus-jakarta-sans/600.css";

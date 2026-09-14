@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { auth } from "../config/firebase";
+import { auth } from "../Config/firebase";
 import { getFirestore, doc, setDoc } from "firebase/firestore";
 import heroImage from "../assets/denari-hero.png";
 import "@fontsource/plus-jakarta-sans/400.css";
