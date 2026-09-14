@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react' 
+import react from '@vitejs/react-plugin' 
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
@@ -8,15 +8,12 @@ export default defineConfig({
     tailwindcss()
   ],
   build: {
-    rolldownOptions: {
+    rollupOptions: {
       output: {
-        codeSplitting: {
-          groups: [
-            {
-              name: 'vendor',
-              test: /node_modules/,
-            }
-          ]
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            return 'vendor'; // Splits large frameworks into a separate file
+          }
         }
       }
     }

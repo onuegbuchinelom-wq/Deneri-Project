@@ -4,15 +4,15 @@ import { getAnalytics } from "firebase/analytics";
 import { getAuth, PhoneAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// Your web app's Firebase configuration
+// Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDDkwWMRdgYUESYgDDdVcvlfnFwBuHc6RA",
-  authDomain: "fir-fb194.firebaseapp.com",
-  projectId: "fir-fb194",
-  storageBucket: "fir-fb194.firebasestorage.app",
-  messagingSenderId: "899492918234",
-  appId: "1:899492918234:web:c6bf06450535c16b9d86e3",
-  measurementId: "G-63NTQ4KJJF"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 // Initialize Firebase
@@ -22,7 +22,6 @@ console.log("Firebase Project:", firebaseConfig.projectId);
 console.log("Firebase App:", app.options);
 
 const analytics = getAnalytics(app);
-
 const auth = getAuth(app);
 const phoneProvider = new PhoneAuthProvider(auth);
 const db = getFirestore(app);
