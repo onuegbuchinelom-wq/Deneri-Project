@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Splash from "./Pages/Splash";
 import Welcome from "./Pages/Welcome";
-import SignUp from "./Pages/SignUp";
+import SignUp from "./Pages/Signup";
 import Signup2 from "./Pages/Signup2";
 import Login from "./Pages/Login";
 import Verify from "./Pages/Verify";
@@ -11,7 +11,7 @@ import EnterPin from "./Pages/EnterPin";
 import ChooseCurrency from "./Pages/ChooseCurrency";
 import PersonalInfo from "./Pages/PersonalInfo";
 import AccountCreated from "./Pages/AccountCreated";
-import DashboardLayout from "./components/DashboardLayout";
+import DashboardLayout from "./Components/DashboardLayout";
 import Home from "./Pages/Home";
 import AddExpense from "./Pages/AddExpense";
 
