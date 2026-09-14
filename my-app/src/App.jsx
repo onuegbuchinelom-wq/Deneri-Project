@@ -11,7 +11,9 @@ import EnterPin from "./Pages/EnterPin";
 import ChooseCurrency from "./Pages/ChooseCurrency";
 import PersonalInfo from "./Pages/PersonalInfo";
 import AccountCreated from "./Pages/AccountCreated";
-import Dashboard from "./Pages/Dashboard";
+import DashboardLayout from "./components/DashboardLayout";
+import Home from "./Pages/Home";
+import AddExpense from "./Pages/AddExpense";
 
 function App() {
   return (
@@ -29,7 +31,22 @@ function App() {
         <Route path="/choose-currency" element={<ChooseCurrency />} />
         <Route path="/personal-info" element={<PersonalInfo />} />
         <Route path="/account-created" element={<AccountCreated />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+
+        {/* Everything inside here shares the sidebar */}
+        <Route path="/dashboard" element={<DashboardLayout />}>
+          <Route index element={<Home />} />
+          <Route path="add-expense" element={<AddExpense />} />
+
+          {/* more dashboard pages get added here as you send them:
+              <Route path="budget" element={<Budget />} />
+              <Route path="add-expense" element={<AddExpense />} />
+              <Route path="savings" element={<SavingsGoals />} />
+              <Route path="analytics" element={<Analytics />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="settings" element={<Settings />} />
+          */}
+        </Route>
+
         {/* More routes go here as we build them */}
       </Routes>
     </BrowserRouter>
