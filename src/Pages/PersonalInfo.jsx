@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { auth } from "../Config/firebase";
 import { getFirestore, doc, setDoc } from "firebase/firestore";
@@ -38,6 +38,37 @@ export default function PersonalInfo() {
   const [dob, setDob] = useState("");
   const [occupation, setOccupation] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const fileInputRef = useRef(null);
+
+  function handlePhotoClick() {
+    fileInputRef.current?.click();
+  }
+
+  function handlePhotoChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      alert("Please choose an image file");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const size = 200;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, size, size);
+        setPhotoPreview(canvas.toDataURL("image/jpeg", 0.7));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -59,9 +90,18 @@ export default function PersonalInfo() {
     try {
       await setDoc(
         doc(getFirestore(), "users", auth.currentUser.uid),
-        { fullName, email, phone, currency, dob, occupation },
+        {
+          fullName,
+          email,
+          phone,
+          currency,
+          dob,
+          occupation,
+          photoURL: photoPreview || null,
+        },
         { merge: true }
       );
+      sessionStorage.setItem("sessionVerified", "true");
       navigate("/account-created", {
         state: { fullName, email, phone, currency, dob, occupation },
       });
@@ -73,7 +113,6 @@ export default function PersonalInfo() {
 
   return (
     <div className="h-screen w-full bg-white flex flex-col md:flex-row overflow-hidden">
-      {/* Left — form */}
       <div className="w-full md:w-1/2 flex items-center justify-center px-8 py-6 md:px-20 lg:px-24">
         <div className="w-full max-w-lg">
           <div className="flex items-start justify-between gap-6 mb-8">
@@ -86,15 +125,32 @@ export default function PersonalInfo() {
               </p>
             </div>
 
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoChange}
+              className="hidden"
+            />
+
             <button
               type="button"
+              onClick={handlePhotoClick}
               aria-label="Upload profile photo"
               className="relative flex h-16 w-16 shrink-0 items-center justify-center
-                         rounded-full bg-orange-500 focus:outline-none
+                         rounded-full bg-orange-500 overflow-hidden focus:outline-none
                          focus-visible:ring-2 focus-visible:ring-orange-400
                          focus-visible:ring-offset-2"
             >
-              <UserIcon />
+              {photoPreview ? (
+                <img
+                  src={photoPreview}
+                  alt="Profile preview"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <UserIcon />
+              )}
               <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center
                                 justify-center rounded-full bg-white text-orange-500 shadow">
                 <CameraIcon />
@@ -104,10 +160,7 @@ export default function PersonalInfo() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label
-                htmlFor="fullName"
-                className="block text-lg font-bold text-neutral-900 mb-2"
-              >
+              <label htmlFor="fullName" className="block text-lg font-bold text-neutral-900 mb-2">
                 Full Name
               </label>
               <input
@@ -125,10 +178,7 @@ export default function PersonalInfo() {
             </div>
 
             <div>
-              <label
-                htmlFor="dob"
-                className="block text-lg font-bold text-neutral-900 mb-2"
-              >
+              <label htmlFor="dob" className="block text-lg font-bold text-neutral-900 mb-2">
                 Date of Birth
               </label>
               <input
@@ -136,7 +186,6 @@ export default function PersonalInfo() {
                 value={dob}
                 onChange={(e) => setDob(e.target.value)}
                 type="date"
-                placeholder="Select your date of birth"
                 disabled={isSubmitting}
                 className="w-full rounded-full border border-neutral-300 px-6 py-3.5
                            text-base text-neutral-800 placeholder:text-neutral-400
@@ -146,10 +195,7 @@ export default function PersonalInfo() {
             </div>
 
             <div>
-              <label
-                htmlFor="occupation"
-                className="block text-lg font-bold text-neutral-900 mb-2"
-              >
+              <label htmlFor="occupation" className="block text-lg font-bold text-neutral-900 mb-2">
                 Occupation
               </label>
               <input
@@ -181,14 +227,9 @@ export default function PersonalInfo() {
         </div>
       </div>
 
-      {/* Right — hero image: inset rounded card with white margin, not full-bleed */}
       <div className="hidden md:flex md:w-1/2 items-stretch py-6 pr-6">
         <div className="w-full rounded-3xl overflow-hidden">
-          <img
-            src={heroImage}
-            alt="Denari branch lobby"
-            className="w-full h-full object-cover"
-          />
+          <img src={heroImage} alt="Denari branch lobby" className="w-full h-full object-cover" />
         </div>
       </div>
     </div>

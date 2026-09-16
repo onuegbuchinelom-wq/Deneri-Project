@@ -29,16 +29,16 @@ export default function Login() {
     setIsSubmitting(true);
     try {
       await signInWithEmailAndPassword(auth, identifier, password);
+      sessionStorage.setItem("sessionVerified", "true");
       navigate("/dashboard");
     } catch (err) {
-      alert(err.message); // e.g. "invalid credential", "user not found"
+      alert(err.message);
       setIsSubmitting(false);
     }
   }
 
   return (
     <div className="h-screen w-full bg-white flex flex-col md:flex-row overflow-hidden">
-      {/* Left — form */}
       <div className="w-full md:w-1/2 flex items-center justify-center px-8 py-6 md:px-20 lg:px-24">
         <div className="w-full max-w-lg">
           <h1 className="text-4xl lg:text-5xl font-bold text-neutral-900 mb-3">
@@ -143,7 +143,6 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Right — hero image: inset rounded card with white margin, not full-bleed */}
       <div className="hidden md:flex md:w-1/2 items-stretch py-6 pr-6">
         <div className="w-full rounded-3xl overflow-hidden">
           <img

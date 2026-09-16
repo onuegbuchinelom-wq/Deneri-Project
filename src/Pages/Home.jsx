@@ -1,7 +1,18 @@
-// src/Pages/Home.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { auth } from "../Config/firebase";
 import {
+  getFirestore,
+  doc,
+  getDoc,
+  collection,
+  query,
+  orderBy,
+  limit,
+  getDocs,
+} from "firebase/firestore";
+import {
+  Bell,
   Eye,
   EyeOff,
   Send,
@@ -9,250 +20,327 @@ import {
   TrendingUp,
   BarChart2,
   MoreHorizontal,
+  ShoppingBag,
+  ArrowDownLeft,
+  Tv,
+  Receipt,
+  Settings,
+  User,
 } from "lucide-react";
-import { auth, db } from "../Config/firebase";
-import {
-  collection,
-  query,
-  orderBy,
-  limit,
-  getDocs,
-  doc,
-  getDoc,
-  Timestamp,
-} from "firebase/firestore";
-
-// Icon/label/color lookup for transaction categories
-const CATEGORY_META = {
-  needs: { label: "Needs", color: "#F97316" },
-  transport: { label: "Transport", color: "#3B82F6" },
-  foodsAndDining: { label: "Foods & Dining", color: "#EF4444" },
-  entertainment: { label: "Entertainment", color: "#A855F7" },
-  shopping: { label: "Shopping", color: "#EC4899" },
-  savingsAndInvestment: { label: "Savings & Investment", color: "#22C55E" },
-  income: { label: "Income", color: "#22C55E" },
-};
 
 const QUICK_ACTIONS = [
-  { key: "add-expense", label: "Add expenses", icon: Send, path: "/dashboard/add-expense" },
-  { key: "budget", label: "Budget", icon: PiggyBank, path: "/dashboard/budget" },
-  { key: "savings", label: "Savings", icon: TrendingUp, path: "/dashboard/savings" },
-  { key: "analytics", label: "Analytics", icon: BarChart2, path: "/dashboard/analytics" },
-  { key: "more", label: "More", icon: MoreHorizontal, path: "/dashboard/profile" },
+  { label: "Add expenses", icon: Send, to: "/dashboard/add-expense" },
+  { label: "Budget", icon: PiggyBank, to: "/dashboard/budget" },
+  { label: "Savings", icon: TrendingUp, to: "/dashboard/savings" },
+  { label: "Analytics", icon: BarChart2, to: "/dashboard/analytics" },
 ];
 
+const MORE_MENU_ITEMS = [
+  { label: "Profile", icon: User, to: "/dashboard/profile" },
+  { label: "Settings", icon: Settings, to: "/dashboard/settings" },
+];
+
+const CATEGORY_ICONS = {
+  "Foods & Dining": ShoppingBag,
+  Income: ArrowDownLeft,
+  Entertainment: Tv,
+};
+
 function formatNaira(amount) {
-  return `₦${Math.abs(amount).toLocaleString()}`;
+  const sign = amount < 0 ? "-" : "+";
+  return `${sign}₦${Math.abs(amount).toLocaleString("en-NG")}`;
 }
 
-function startOfMonth(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
-}
-
-function formatRelativeDate(date) {
+function formatDate(timestamp) {
+  if (!timestamp?.toDate) return "";
+  const date = timestamp.toDate();
   const now = new Date();
-  const isSameDay = date.toDateString() === now.toDateString();
+  const isToday = date.toDateString() === now.toDateString();
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
   const isYesterday = date.toDateString() === yesterday.toDateString();
 
-  const time = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  const time = date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
 
-  if (isSameDay) return `Today, ${time}`;
+  if (isToday) return `Today, ${time}`;
   if (isYesterday) return `Yesterday, ${time}`;
-  return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  return date.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 export default function Home() {
-  const navigate = useNavigate();
-  const [data, setData] = useState(null);
-  const [showBalance, setShowBalance] = useState(true);
+  const [fullName, setFullName] = useState("");
+  const [photoURL, setPhotoURL] = useState(null);
+  const [balance, setBalance] = useState(0);
+  const [changePercent, setChangePercent] = useState(null);
+  const [budgetUsedPercent, setBudgetUsedPercent] = useState(null);
+  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [balanceVisible, setBalanceVisible] = useState(true);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function loadHomeData() {
-      const user = auth.currentUser;
-      if (!user) throw new Error("No authenticated user.");
-
-      // --- Read user profile + cached balance ---
-      const userRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userRef);
-      if (!userSnap.exists()) throw new Error("User profile not found.");
-      const userData = userSnap.data();
-
-      // --- Read 5 most recent transactions ---
-      const txRef = collection(db, "users", user.uid, "transactions");
-      const recentQuery = query(txRef, orderBy("date", "desc"), limit(5));
-      const recentSnap = await getDocs(recentQuery);
-
-      const recentTransactions = recentSnap.docs.map((d) => {
-        const tx = d.data();
-        const jsDate = tx.date instanceof Timestamp ? tx.date.toDate() : new Date(tx.date);
-        return {
-          id: d.id,
-          name: tx.name,
-          category: tx.category,
-          type: tx.type,
-          amount: tx.amount,
-          dateLabel: formatRelativeDate(jsDate),
-        };
-      });
-
-      // --- Compute this-month vs last-month spend (client-side aggregation) ---
-      const allTxSnap = await getDocs(txRef);
-      const thisMonthStart = startOfMonth();
-      const lastMonthStart = startOfMonth(
-        new Date(thisMonthStart.getFullYear(), thisMonthStart.getMonth() - 1, 1)
-      );
-
-      let thisMonthSpend = 0;
-      let lastMonthSpend = 0;
-
-      allTxSnap.docs.forEach((d) => {
-        const tx = d.data();
-        if (tx.type !== "expense") return;
-        const jsDate = tx.date instanceof Timestamp ? tx.date.toDate() : new Date(tx.date);
-        if (jsDate >= thisMonthStart) {
-          thisMonthSpend += tx.amount;
-        } else if (jsDate >= lastMonthStart && jsDate < thisMonthStart) {
-          lastMonthSpend += tx.amount;
-        }
-      });
-
-      const percentVsLastMonth =
-        lastMonthSpend > 0 ? ((thisMonthSpend - lastMonthSpend) / lastMonthSpend) * 100 : null;
-
-      // --- Budget progress % (spend this month / monthly income) ---
-      const monthlyIncome = userData.budget?.income?.amount
-        ? userData.budget.income.frequency === "weekly"
-          ? userData.budget.income.amount * 4
-          : userData.budget.income.amount
-        : null;
-      const budgetProgressPercent = monthlyIncome
-        ? Math.min(100, Math.round((thisMonthSpend / monthlyIncome) * 100))
-        : null;
-
-      return {
-        firstName: userData.firstName || "",
-        totalBalance: userData.totalBalance ?? 0,
-        percentVsLastMonth,
-        budgetProgressPercent,
-        recentTransactions,
-      };
+    function handleClickOutside(event) {
+      if (moreRef.current && !moreRef.current.contains(event.target)) {
+        setMoreOpen(false);
+      }
     }
-
-    loadHomeData()
-      .then((homeData) => {
-        if (!cancelled) setData(homeData);
-      })
-      .catch((err) => {
-        console.error(err);
-        if (!cancelled) setError("Couldn't load your dashboard. Please try again.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  if (loading) return <p className="text-gray-400 text-sm">Loading...</p>;
-  if (error) return <p className="text-red-500 text-sm">{error}</p>;
+  useEffect(() => {
+    async function loadHomeData() {
+      const user = auth.currentUser;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
-  const monthLabel = new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" });
+      try {
+        const db = getFirestore();
+
+        // Profile + balance
+        const userSnap = await getDoc(doc(db, "users", user.uid));
+        if (userSnap.exists()) {
+          const data = userSnap.data();
+          setFullName((data.fullName || "").split(" ")[0] || "");
+          setPhotoURL(data.photoURL || null);
+          setBalance(data.balance || 0);
+          setChangePercent(
+            typeof data.balanceChangePercent === "number"
+              ? data.balanceChangePercent
+              : null
+          );
+          setBudgetUsedPercent(
+            typeof data.budgetUsedPercent === "number"
+              ? data.budgetUsedPercent
+              : null
+          );
+        }
+
+        // 3 most recent transactions
+        const txQuery = query(
+          collection(db, "users", user.uid, "transactions"),
+          orderBy("createdAt", "desc"),
+          limit(3)
+        );
+        const txSnap = await getDocs(txQuery);
+        setTransactions(
+          txSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
+        );
+      } catch (err) {
+        console.error("Failed to load home data:", err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadHomeData();
+  }, []);
+
+  const monthLabel = new Date().toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
 
   return (
-    <div className="max-w-2xl">
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-4xl mx-auto px-8 py-8">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-8">
         <div>
-          <p className="text-sm text-gray-500">HELLO!</p>
-          <h1 className="text-2xl font-bold text-gray-900">{data.firstName}</h1>
+          <p className="text-2xl font-bold text-neutral-900">HELLO!</p>
+          <p className="text-2xl font-bold text-neutral-900">
+            {loading ? "…" : fullName || "there"}
+          </p>
         </div>
-        <span className="text-gray-400 text-sm">{monthLabel}</span>
+
+        <div className="flex flex-col items-center gap-1">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              aria-label="Notifications"
+              onClick={() => navigate("/dashboard/notifications")}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-100
+                         text-orange-600 hover:bg-orange-200 transition-colors focus:outline-none"
+            >
+              <Bell size={18} />
+            </button>
+
+            {photoURL ? (
+              <img
+                src={photoURL}
+                alt="Profile"
+                className="h-9 w-9 rounded-full object-cover"
+              />
+            ) : (
+              <div className="h-9 w-9 rounded-full bg-neutral-200" />
+            )}
+          </div>
+          <p className="text-sm text-neutral-500">{monthLabel}</p>
+        </div>
       </div>
 
-      {/* Total balance card */}
-      <div className="rounded-2xl p-6 mb-8 text-white bg-gradient-to-r from-orange-400 to-orange-600">
-        <div className="flex items-center gap-2 mb-2 text-sm opacity-90">
-          <span>Total Balance</span>
-          <button onClick={() => setShowBalance((v) => !v)} aria-label="Toggle balance visibility">
-            {showBalance ? <Eye size={16} /> : <EyeOff size={16} />}
+      {/* Total Balance card */}
+      <div className="rounded-3xl bg-gradient-to-br from-orange-400 to-orange-600 px-8 py-7 text-white mb-8">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-sm font-medium opacity-90">Total Balance</span>
+          <button
+            type="button"
+            aria-label={balanceVisible ? "Hide balance" : "Show balance"}
+            onClick={() => setBalanceVisible((v) => !v)}
+            className="opacity-90 hover:opacity-100 focus:outline-none"
+          >
+            {balanceVisible ? <Eye size={16} /> : <EyeOff size={16} />}
           </button>
         </div>
-        <p className="text-3xl font-bold mb-3">
-          {showBalance ? formatNaira(data.totalBalance) : "₦••••••"}
+
+        <p className="text-4xl font-bold mb-3">
+          {loading
+            ? "…"
+            : balanceVisible
+            ? `₦${balance.toLocaleString("en-NG")}`
+            : "••••••••"}
         </p>
-        {data.budgetProgressPercent !== null && (
-          <>
-            <div className="w-full h-2 bg-white/30 rounded-full overflow-hidden mb-1">
+
+        {budgetUsedPercent !== null && (
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-1.5 flex-1 rounded-full bg-white/30 overflow-hidden">
               <div
-                className="h-full bg-white rounded-full"
-                style={{ width: `${data.budgetProgressPercent}%` }}
+                className="h-full rounded-full bg-white"
+                style={{ width: `${Math.min(Math.max(budgetUsedPercent, 0), 100)}%` }}
               />
             </div>
-            <p className="text-xs opacity-90">
-              {data.percentVsLastMonth !== null
-                ? `${data.percentVsLastMonth >= 0 ? "+" : ""}${data.percentVsLastMonth.toFixed(1)}% vs last month`
-                : "No spending history yet"}
-            </p>
-          </>
+            <span className="text-xs font-medium opacity-90">
+              {budgetUsedPercent}%
+            </span>
+          </div>
+        )}
+
+        {changePercent !== null && (
+          <p className="text-xs opacity-80">
+            {changePercent >= 0 ? "+" : ""}
+            {changePercent}% vs last month
+          </p>
         )}
       </div>
 
-      {/* Quick actions */}
-      <h2 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h2>
-      <div className="grid grid-cols-5 gap-3 mb-8">
-        {QUICK_ACTIONS.map(({ key, label, icon: Icon, path }) => (
+      {/* Quick Actions */}
+      <h2 className="text-lg font-bold text-neutral-900 mb-4">Quick Actions</h2>
+      <div className="grid grid-cols-5 gap-3 mb-10">
+        {QUICK_ACTIONS.map(({ label, icon: Icon, to }) => (
           <button
-            key={key}
-            onClick={() => navigate(path)}
-            className="flex flex-col items-center gap-2 border border-gray-200 rounded-xl py-4 hover:border-orange-400 transition-colors"
+            key={label}
+            type="button"
+            onClick={() => navigate(to)}
+            className="flex flex-col items-center gap-2 rounded-2xl border border-neutral-200
+                       bg-white px-3 py-5 text-center hover:border-orange-300 hover:bg-orange-50
+                       transition-colors focus:outline-none"
           >
-            <Icon size={20} className="text-gray-700" />
-            <span className="text-xs text-gray-600 text-center px-1">{label}</span>
+            <Icon size={20} className="text-neutral-700" />
+            <span className="text-xs font-medium text-neutral-600">{label}</span>
           </button>
         ))}
+
+        {/* More: opens a dropdown instead of navigating away */}
+        <div className="relative" ref={moreRef}>
+          <button
+            type="button"
+            onClick={() => setMoreOpen((v) => !v)}
+            aria-haspopup="true"
+            aria-expanded={moreOpen}
+            className="flex w-full flex-col items-center gap-2 rounded-2xl border border-neutral-200
+                       bg-white px-3 py-5 text-center hover:border-orange-300 hover:bg-orange-50
+                       transition-colors focus:outline-none"
+          >
+            <MoreHorizontal size={20} className="text-neutral-700" />
+            <span className="text-xs font-medium text-neutral-600">More</span>
+          </button>
+
+          {moreOpen && (
+            <div
+              className="absolute right-0 z-10 mt-2 w-48 rounded-2xl border border-neutral-200
+                         bg-white py-2 shadow-lg"
+            >
+              {MORE_MENU_ITEMS.map(({ label, icon: Icon, to }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => {
+                    setMoreOpen(false);
+                    navigate(to);
+                  }}
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm
+                             text-neutral-700 hover:bg-orange-50 hover:text-orange-600
+                             transition-colors focus:outline-none"
+                >
+                  <Icon size={16} />
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Recent transactions */}
-      <h2 className="text-sm font-semibold text-gray-900 mb-3">Recent transactions</h2>
-      <div className="space-y-4">
-        {data.recentTransactions.length === 0 && (
-          <p className="text-sm text-gray-400">No transactions yet.</p>
-        )}
-        {data.recentTransactions.map((tx) => {
-          const meta = CATEGORY_META[tx.type === "income" ? "income" : tx.category] || {};
-          const isIncome = tx.type === "income";
-          return (
-            <div key={tx.id} className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                  style={{ backgroundColor: meta.color || "#9CA3AF" }}
+      <h2 className="text-lg font-bold text-neutral-900 mb-4">
+        Recent transactions
+      </h2>
+
+      {loading ? (
+        <p className="text-neutral-500">Loading…</p>
+      ) : transactions.length === 0 ? (
+        <p className="text-neutral-400 text-sm">
+          No transactions yet. Add your first expense to see it here.
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {transactions.map((tx) => {
+            const Icon = CATEGORY_ICONS[tx.category] || Receipt;
+            const isIncome = tx.amount > 0;
+            return (
+              <div key={tx.id} className="flex items-center gap-4">
+                <span
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                    isIncome
+                      ? "bg-green-100 text-green-600"
+                      : "bg-orange-100 text-orange-500"
+                  }`}
                 >
-                  {tx.name?.[0]?.toUpperCase() || "?"}
+                  <Icon size={18} />
+                </span>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-neutral-900">
+                    {tx.title}
+                  </p>
+                  <p className="text-xs text-neutral-500">{tx.category}</p>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{tx.name}</p>
-                  <p className="text-xs text-gray-400">{meta.label || tx.category}</p>
+                <div className="text-right">
+                  <p
+                    className={`text-sm font-semibold ${
+                      isIncome ? "text-green-600" : "text-neutral-900"
+                    }`}
+                  >
+                    {formatNaira(tx.amount)}
+                  </p>
+                  <p className="text-xs text-neutral-400">
+                    {formatDate(tx.createdAt)}
+                  </p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className={`text-sm font-semibold ${isIncome ? "text-green-500" : "text-gray-900"}`}>
-                  {isIncome ? "+" : "-"}
-                  {formatNaira(tx.amount)}
-                </p>
-                <p className="text-xs text-gray-400">{tx.dateLabel}</p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -74,12 +74,12 @@ export default function SetupPin() {
   return (
     <div className="h-screen w-full bg-white flex flex-col md:flex-row overflow-hidden">
       {/* Left — form */}
-      <div className="w-full md:w-1/2 flex items-start justify-center px-8 pt-20 pb-6 md:px-20 lg:px-24 md:pt-28">
+      <div className="w-full md:w-1/2 flex flex-col items-center justify-center px-8 py-6 md:px-20 lg:px-24 overflow-y-auto min-h-0">
         <div className="w-full max-w-lg text-center">
-          <h1 className="text-4xl lg:text-5xl font-bold text-neutral-900 mb-14">
+          <h1 className="text-4xl lg:text-5xl font-bold text-neutral-900 mb-6">
             Set up pin
           </h1>
-          <p className="text-lg text-black font-medium text-[24px] mb-14">
+          <p className="text-lg text-black font-medium text-[24px] mb-10">
             Create a 4-digit pin to secure
             <br />
             your account.
@@ -115,7 +115,7 @@ export default function SetupPin() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full mt-40 rounded-full bg-orange-500 hover:bg-orange-600
+              className="w-full mt-10 rounded-full bg-orange-500 hover:bg-orange-600
                          active:bg-orange-700 transition-colors text-white text-lg
                          font-semibold py-4 focus:outline-none focus-visible:ring-2
                          focus-visible:ring-orange-400 focus-visible:ring-offset-2

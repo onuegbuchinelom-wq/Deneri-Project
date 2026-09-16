@@ -36,6 +36,7 @@ function EnterPin() {
       const savedPin = snap.exists() ? snap.data().pin : null;
 
       if (savedPin && pin === savedPin) {
+        sessionStorage.setItem("sessionVerified", "true");
         navigate("/dashboard");
       } else {
         setError("Incorrect PIN. Try again.");
@@ -51,12 +52,10 @@ function EnterPin() {
   return (
     <div className="relative flex h-screen flex-col items-center justify-between 
     overflow-hidden bg-[#FF8D28] px-8 py-16">
-      {/* Logo */}
       <div className="flex flex-1 flex-col items-center justify-center">
         <img src={logo} alt="Denari" className="h-60 w-auto" />
       </div>
 
-      {/* PIN prompt */}
       <div className="flex flex-col items-center gap-6 mt-10">
         <p className="text-lg font-semibold text-white">
           Enter your 4-digit PIN
@@ -68,7 +67,6 @@ function EnterPin() {
           </p>
         )}
 
-        {/* Hidden input drives the system keyboard */}
         <input
           ref={inputRef}
           type="tel"
@@ -97,7 +95,6 @@ function EnterPin() {
         </div>
       </div>
 
-      {/* CTA */}
       <div className="w-full max-w-sm pt-16">
         <button
           type="button"

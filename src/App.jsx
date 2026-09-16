@@ -12,8 +12,25 @@ import ChooseCurrency from "./Pages/ChooseCurrency";
 import PersonalInfo from "./Pages/PersonalInfo";
 import AccountCreated from "./Pages/AccountCreated";
 import DashboardLayout from "./Components/DashboardLayout";
+import ProtectedRoute from "./Routes/ProtectedRoute";
 import Home from "./Pages/Home";
 import AddExpense from "./Pages/AddExpense";
+import Budget from "./Pages/Budget";
+import BudgetSetup from "./Pages/BudgetSetup";
+import Analytics from "./Pages/Analytics";
+import SavingsGoals from "./Pages/SavingsGoals";
+import Profile from "./Pages/Profile";
+import Settings from "./Pages/Settings";
+import PersonalInfoDetail from "./Pages/PersonalInfoDetail";
+import BankAccounts from "./Pages/BankAccounts";
+import LinkedDevices from "./Pages/LinkedDevices";
+import Security from "./Pages/Security";
+import HelpSupport from "./Pages/HelpSupport";
+import InviteFriends from "./Pages/InviteFriends";
+import GeneralSettings from "./Pages/GeneralSettings";
+import NotificationSettings from "./Pages/NotificationSettings";
+import PrivacySettings from "./Pages/PrivacySettings";
+import AboutDenari from "./Pages/AboutDenari";
 
 function App() {
   return (
@@ -32,22 +49,39 @@ function App() {
         <Route path="/personal-info" element={<PersonalInfo />} />
         <Route path="/account-created" element={<AccountCreated />} />
 
-        {/* Everything inside here shares the sidebar */}
-        <Route path="/dashboard" element={<DashboardLayout />}>
-          <Route index element={<Home />} />
-          <Route path="add-expense" element={<AddExpense />} />
-
-          {/* more dashboard pages get added here as you send them:
-              <Route path="budget" element={<Budget />} />
-              <Route path="add-expense" element={<AddExpense />} />
-              <Route path="savings" element={<SavingsGoals />} />
-              <Route path="analytics" element={<Analytics />} />
-              <Route path="profile" element={<Profile />} />
-              <Route path="settings" element={<Settings />} />
-          */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route index element={<Home />} />
+            <Route path="add-expense" element={<AddExpense />} />
+            <Route path="budget" element={<Budget />} />
+            <Route path="budget-setup" element={<BudgetSetup />} />
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="savings" element={<SavingsGoals />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="profile/personal-info" element={<PersonalInfoDetail />} />
+            <Route path="profile/bank-accounts" element={<BankAccounts />} />
+            <Route path="profile/linked-devices" element={<LinkedDevices />} />
+            <Route path="profile/help" element={<HelpSupport />} />
+            <Route path="profile/invite" element={<InviteFriends />} />
+            <Route path="settings/general" element={<GeneralSettings />} />
+            <Route path="settings/notifications" element={<NotificationSettings />} />
+            <Route path="settings/privacy" element={<PrivacySettings />} />
+            <Route path="settings/security" element={<Security />} />
+            <Route path="settings/about" element={<AboutDenari />} />
+          </Route>
         </Route>
 
-        {/* More routes go here as we build them */}
+        <Route
+          path="*"
+          element={
+            <div className="h-screen w-full bg-white flex flex-col items-center justify-center px-8 text-center">
+              <h1 className="text-6xl font-bold text-orange-500 mb-4">404</h1>
+              <p className="text-xl font-semibold text-neutral-900 mb-2">Page not found</p>
+              <p className="text-neutral-500">The page you&apos;re looking for doesn&apos;t exist.</p>
+            </div>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );
