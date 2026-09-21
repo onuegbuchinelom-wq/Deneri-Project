@@ -169,7 +169,7 @@ export default function AddExpense() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-8 py-8">
+    <div className="max-w-lg mx-auto px-4 sm:px-8 py-6 sm:py-8">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-bold text-neutral-900">Add Expense</h1>
         <span className="text-sm text-neutral-500">

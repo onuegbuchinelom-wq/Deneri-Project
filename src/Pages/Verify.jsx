@@ -144,11 +144,11 @@ export default function Verify() {
   }
 
   return (
-    <div className="h-screen w-full bg-white flex flex-col md:flex-row overflow-hidden">
+    <div className="min-h-screen w-full bg-white flex flex-col md:h-screen md:flex-row md:overflow-hidden">
       {/* Left — form */}
-      <div className="w-full md:w-1/2 flex items-center justify-center px-8 py-6 md:px-20 lg:px-24">
+      <div className="w-full md:w-1/2 flex items-center justify-center px-4 sm:px-8 py-6 md:px-20 lg:px-24">
         <div className="w-full max-w-lg text-center">
-          <h1 className="text-4xl lg:text-5xl font-bold text-neutral-900 mb-4">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-neutral-900 mb-4">
             Verify OTP
           </h1>
           <p className="text-lg text-neutral-600 mb-10">
@@ -165,7 +165,7 @@ export default function Verify() {
 
           <form onSubmit={handleSubmit} className="space-y-8">
             <div
-              className="flex justify-center gap-3"
+              className="flex justify-center gap-2 sm:gap-3"
               onPaste={handlePaste}
             >
               {digits.map((digit, index) => (
@@ -180,7 +180,7 @@ export default function Verify() {
                   maxLength={1}
                   disabled={isVerifying}
                   aria-label={`Digit ${index + 1}`}
-                  className="w-12 h-14 md:w-14 md:h-16 rounded-xl border border-orange-300
+                  className="w-10 h-12 sm:w-12 sm:h-14 md:w-14 md:h-16 rounded-xl border border-orange-300
                              text-center text-xl font-semibold text-neutral-800
                              focus:outline-none focus:ring-2 focus:ring-orange-400
                              focus:border-orange-400 disabled:bg-neutral-50"

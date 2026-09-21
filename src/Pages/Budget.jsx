@@ -45,7 +45,7 @@ export default function Budget() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-8 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
         <p className="text-neutral-500">Loading budget…</p>
       </div>
     );
@@ -54,7 +54,7 @@ export default function Budget() {
   // No budget set up yet
   if (!budget) {
     return (
-      <div className="max-w-4xl mx-auto px-8 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
         <h1 className="text-2xl font-bold text-neutral-900 mb-3">Budget</h1>
         <div className="rounded-3xl border border-dashed border-neutral-300 px-8 py-16 text-center">
           <p className="text-neutral-600 mb-1">
@@ -92,7 +92,7 @@ export default function Budget() {
   });
 
   return (
-    <div className="max-w-4xl mx-auto px-8 py-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-neutral-900">Budget</h1>
         <span className="text-sm text-neutral-500">{monthLabel}</span>

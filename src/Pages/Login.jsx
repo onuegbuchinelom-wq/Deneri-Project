@@ -38,10 +38,10 @@ export default function Login() {
   }
 
   return (
-    <div className="h-screen w-full bg-white flex flex-col md:flex-row overflow-hidden">
-      <div className="w-full md:w-1/2 flex items-center justify-center px-8 py-6 md:px-20 lg:px-24">
+    <div className="min-h-screen w-full bg-white flex flex-col md:h-screen md:flex-row md:overflow-hidden">
+      <div className="w-full md:w-1/2 flex items-center justify-center px-4 sm:px-8 py-6 md:px-20 lg:px-24">
         <div className="w-full max-w-lg">
-          <h1 className="text-4xl lg:text-5xl font-bold text-neutral-900 mb-3">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-neutral-900 mb-3">
             Log In
           </h1>
           <p className="text-lg text-neutral-600 mb-8">

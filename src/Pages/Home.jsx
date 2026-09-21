@@ -58,7 +58,16 @@ function formatSigned(amount, formatCurrency) {
   return `${sign}${formatCurrency(Math.abs(amount))}`;
 }
 
-function formatDate(timestamp) {
+function formatNumericDate(date, dateFormat) {
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  if (dateFormat === "MM/DD/YYYY") return `${month}/${day}/${year}`;
+  if (dateFormat === "YYYY-MM-DD") return `${year}-${month}-${day}`;
+  return `${day}/${month}/${year}`;
+}
+
+function formatDate(timestamp, dateFormat) {
   if (!timestamp?.toDate) return "";
   const date = timestamp.toDate();
   const now = new Date();
@@ -74,22 +83,14 @@ function formatDate(timestamp) {
 
   if (isToday) return `Today, ${time}`;
   if (isYesterday) return `Yesterday, ${time}`;
-  return date.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  return formatNumericDate(date, dateFormat);
 }
 
-function formatFullDateTime(timestamp) {
+function formatFullDateTime(timestamp, dateFormat) {
   if (!timestamp?.toDate) return { date: "—", time: "—" };
   const date = timestamp.toDate();
   return {
-    date: date.toLocaleDateString("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    }),
+    date: formatNumericDate(date, dateFormat),
     time: date.toLocaleTimeString("en-US", {
       hour: "numeric",
       minute: "2-digit",
@@ -236,10 +237,7 @@ export default function Home() {
     };
   }, []);
 
-  const monthLabel = new Date().toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
+  const monthLabel = formatNumericDate(new Date(), settings.dateFormat);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -284,7 +282,7 @@ export default function Home() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-8 py-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
@@ -364,7 +362,7 @@ export default function Home() {
                             </p>
                           )}
                           <p className="text-xs text-neutral-400 mt-1">
-                            {formatDate(notif.createdAt)}
+                            {formatDate(notif.createdAt, settings.dateFormat)}
                           </p>
                         </span>
                       </button>
@@ -434,7 +432,7 @@ export default function Home() {
 
       {/* Quick Actions */}
       <h2 className="text-lg font-bold text-neutral-900 mb-4">Quick Actions</h2>
-      <div className="grid grid-cols-5 gap-3 mb-10">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-10">
         {QUICK_ACTIONS.map(({ label, icon: Icon, to }) => (
           <button
             key={label}
@@ -507,7 +505,7 @@ export default function Home() {
             const Icon = CATEGORY_ICONS[tx.category] || Receipt;
             const isIncome = tx.amount > 0;
             const isExpanded = expandedTxId === tx.id;
-            const { date: fullDate, time: fullTime } = formatFullDateTime(tx.createdAt);
+            const { date: fullDate, time: fullTime } = formatFullDateTime(tx.createdAt, settings.dateFormat);
 
             return (
               <div
@@ -547,7 +545,7 @@ export default function Home() {
                       {formatSigned(tx.amount, formatCurrency)}
                     </p>
                     <p className="text-xs text-neutral-400">
-                      {formatDate(tx.createdAt)}
+                      {formatDate(tx.createdAt, settings.dateFormat)}
                     </p>
                   </div>
                   <ChevronDown

@@ -112,12 +112,12 @@ export default function PersonalInfo() {
   }
 
   return (
-    <div className="h-screen w-full bg-white flex flex-col md:flex-row overflow-hidden">
-      <div className="w-full md:w-1/2 flex items-center justify-center px-8 py-6 md:px-20 lg:px-24">
+    <div className="min-h-screen w-full bg-white flex flex-col md:h-screen md:flex-row md:overflow-hidden">
+      <div className="w-full md:w-1/2 flex items-center justify-center px-4 sm:px-8 py-6 md:px-20 lg:px-24">
         <div className="w-full max-w-lg">
-          <div className="flex items-start justify-between gap-6 mb-8">
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-5 mb-8">
             <div>
-              <h1 className="text-3xl lg:text-4xl font-bold text-neutral-900 mb-3 whitespace-nowrap">
+              <h1 className="text-3xl lg:text-4xl font-bold text-neutral-900 mb-3">
                 Tell us about you
               </h1>
               <p className="text-lg text-neutral-500">

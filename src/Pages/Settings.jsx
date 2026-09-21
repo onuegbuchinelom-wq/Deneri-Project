@@ -61,7 +61,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-8 py-8">
+    <div className="max-w-2xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
       <h1 className="text-2xl font-bold text-neutral-900 mb-8">Settings</h1>
 
       <div className="space-y-2 mb-10">

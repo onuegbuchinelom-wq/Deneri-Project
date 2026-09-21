@@ -8,7 +8,7 @@ const DEFAULT_SETTINGS = {
   currency: "NGN",
   dateFormat: "DD/MM/YYYY",
   firstDayOfWeek: "Monday",
-  theme: "system",
+  theme: "light",
   notifications: {
     master: true,
     expenseAdded: true,

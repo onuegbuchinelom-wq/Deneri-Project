@@ -92,7 +92,7 @@ export default function Profile() {
   }, []);
 
   return (
-    <div className="max-w-2xl mx-auto px-8 py-8">
+    <div className="max-w-2xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-bold text-neutral-900">Profile</h1>
         <button
@@ -132,7 +132,7 @@ export default function Profile() {
       <h2 className="text-sm font-semibold text-neutral-500 mb-3">
         Account Overview
       </h2>
-      <div className="grid grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
         <div className="rounded-2xl border border-neutral-200 px-5 py-4">
           <p className="text-xs text-neutral-500 mb-1">Total balance</p>
           <p className="text-lg font-bold text-neutral-900">

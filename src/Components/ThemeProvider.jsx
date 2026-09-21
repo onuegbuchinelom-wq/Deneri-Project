@@ -5,8 +5,7 @@ import { useSettings } from "./SettingsProvider";
 const ThemeContext = createContext(null);
 
 function applyTheme(theme, isDashboard) {
-  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const isDark = isDashboard && (theme === "dark" || (theme === "system" && prefersDark));
+  const isDark = isDashboard && theme === "dark";
   document.documentElement.classList.toggle("dashboard-dark", isDark);
   document.documentElement.style.colorScheme = isDark ? "dark" : "light";
 }
@@ -20,11 +19,7 @@ export function ThemeProvider({ children }) {
   useEffect(() => {
     applyTheme(theme, isDashboard);
 
-    if (theme !== "system") return undefined;
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = () => applyTheme(theme, isDashboard);
-    media.addEventListener("change", handleChange);
-    return () => media.removeEventListener("change", handleChange);
+    return undefined;
   }, [isDashboard, theme]);
 
   function setTheme(nextTheme) {

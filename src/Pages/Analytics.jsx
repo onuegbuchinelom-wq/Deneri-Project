@@ -170,15 +170,15 @@ export default function Analytics() {
   const totalTracked = totals.expenses + totals.savings;
 
   if (loading) {
-    return <div className="max-w-4xl mx-auto px-8 py-8"><p className="text-neutral-500">Loading analytics...</p></div>;
+    return <div className="max-w-4xl mx-auto px-4 sm:px-8 py-6 sm:py-8"><p className="text-neutral-500">Loading analytics...</p></div>;
   }
 
   if (!settings.privacy.analytics) {
-    return <div className="max-w-4xl mx-auto px-8 py-8"><h1 className="text-xl font-bold text-neutral-900">Analytics</h1><p className="mt-4 text-sm text-neutral-500">Analytics is disabled in Privacy settings.</p></div>;
+    return <div className="max-w-4xl mx-auto px-4 sm:px-8 py-6 sm:py-8"><h1 className="text-xl font-bold text-neutral-900">Analytics</h1><p className="mt-4 text-sm text-neutral-500">Analytics is disabled in Privacy settings.</p></div>;
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-8 py-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
       <div className="flex items-center gap-2 mb-6">
         <button type="button" onClick={() => navigate(-1)} aria-label="Go back" className="text-neutral-500 hover:text-neutral-900"><ChevronLeftIcon /></button>
         <h1 className="text-xl font-bold text-neutral-900">Analytics</h1>
@@ -225,11 +225,11 @@ export default function Analytics() {
       ) : (
         <>
           <h2 className="text-sm font-semibold text-neutral-500 mt-10 mb-2">Expense Overview</h2>
-          <div className="w-full overflow-x-auto">
-            <div className="min-w-130" style={{ height: 290 }}>
+          <div className="w-full min-w-0 overflow-hidden">
+            <div className="w-full min-w-0" style={{ height: 290 }}>
               <ResponsiveContainer>
                 <BarChart data={chartData} margin={{ top: 12, right: 12, left: 8, bottom: 8 }} barCategoryGap="22%">
-                  <XAxis dataKey="label" axisLine={false} tickLine={false} interval={0} tick={{ fontSize: 12 }} />
+                  <XAxis dataKey="label" axisLine={false} tickLine={false} interval={chartData.length > 6 ? "preserveStartEnd" : 0} tick={{ fontSize: 11 }} />
                   <YAxis axisLine={false} tickLine={false} width={72} tickFormatter={(value) => formatCompactAmount(value, formatCurrency)} tick={{ fontSize: 12 }} />
                   <Tooltip formatter={(value, name) => [formatCurrency(value), name === "savings" ? "Savings" : "Expenses"]} />
                   {type === "all" ? <><Bar dataKey="expenses" stackId="amount" fill="#F97316" maxBarSize={48} radius={[6, 6, 0, 0]} /><Bar dataKey="savings" stackId="amount" fill="#14B8A6" maxBarSize={48} /></> : <Bar dataKey="total" fill={type === "savings" ? "#14B8A6" : "#F97316"} maxBarSize={48} radius={[6, 6, 0, 0]} />}

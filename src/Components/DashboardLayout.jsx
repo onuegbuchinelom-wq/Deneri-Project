@@ -71,14 +71,14 @@ export default function DashboardLayout() {
       </aside>
 
       {/* Active page renders here. Bottom padding on mobile clears the tab bar. */}
-      <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
+      <main className="min-w-0 flex-1 overflow-y-auto pb-20 md:pb-0">
         <Outlet />
       </main>
 
       {/* Bottom tab bar — mobile only */}
       <nav
         className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-neutral-200
-                   px-4 pb-[env(safe-area-inset-bottom)]"
+                   px-2 sm:px-4 pb-[env(safe-area-inset-bottom)]"
       >
         <div className="flex items-center justify-between h-16">
           {BOTTOM_NAV_ITEMS.map(({ to, label, icon: Icon, end, isCenter }) =>

@@ -86,7 +86,7 @@ export default function BudgetSetup() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-8 py-8">
+    <div className="max-w-lg mx-auto px-4 sm:px-8 py-6 sm:py-8">
       <h1 className="text-2xl font-bold text-neutral-900 mb-8">
         Let&apos;s create your budget
       </h1>

@@ -24,9 +24,9 @@ export default function AccountCreated() {
  
 
   return (
-    <div className="h-screen w-full bg-white flex flex-col md:flex-row overflow-hidden">
+    <div className="min-h-screen w-full bg-white flex flex-col md:h-screen md:flex-row md:overflow-hidden">
       {/* Left — success message */}
-      <div className="w-full md:w-1/2 flex items-center justify-center px-8 py-6 md:px-20 lg:px-24">
+      <div className="w-full md:w-1/2 flex items-center justify-center px-4 sm:px-8 py-6 md:px-20 lg:px-24">
         <div className="w-full max-w-lg">
           <h1 className="text-3xl lg:text-4xl font-bold text-neutral-900 mb-3 text-center">
             Welcome to DENARI
