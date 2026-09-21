@@ -18,6 +18,7 @@ import AddExpense from "./Pages/AddExpense";
 import Budget from "./Pages/Budget";
 import BudgetSetup from "./Pages/BudgetSetup";
 import Analytics from "./Pages/Analytics";
+import TransactionHistory from "./Pages/TransactionHistory";
 import SavingsGoals from "./Pages/SavingsGoals";
 import Profile from "./Pages/Profile";
 import Settings from "./Pages/Settings";
@@ -31,11 +32,13 @@ import GeneralSettings from "./Pages/GeneralSettings";
 import NotificationSettings from "./Pages/NotificationSettings";
 import PrivacySettings from "./Pages/PrivacySettings";
 import AboutDenari from "./Pages/AboutDenari";
+import { ThemeProvider } from "./Components/ThemeProvider";
 
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
+      <ThemeProvider>
+        <Routes>
         <Route path="/" element={<Splash />} />
         <Route path="/welcome" element={<Welcome />} />
         <Route path="/signup" element={<SignUp />} />
@@ -56,6 +59,7 @@ function App() {
             <Route path="budget" element={<Budget />} />
             <Route path="budget-setup" element={<BudgetSetup />} />
             <Route path="analytics" element={<Analytics />} />
+            <Route path="transactions" element={<TransactionHistory />} />
             <Route path="savings" element={<SavingsGoals />} />
             <Route path="profile" element={<Profile />} />
             <Route path="settings" element={<Settings />} />
@@ -82,7 +86,8 @@ function App() {
             </div>
           }
         />
-      </Routes>
+        </Routes>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

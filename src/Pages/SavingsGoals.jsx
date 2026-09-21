@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 import { auth } from "../Config/firebase";
+import { useSettings } from "../Components/SettingsProvider";
 import {
   getFirestore,
   collection,
-  addDoc,
-  updateDoc,
   doc,
   onSnapshot,
   serverTimestamp,
+  increment,
+  writeBatch,
 } from "firebase/firestore";
-import { PiggyBank, Home as HomeIcon, Plane, Laptop, Landmark, X } from "lucide-react";
+import { PiggyBank, Plane, Laptop, Landmark, X } from "lucide-react";
 
 const GOAL_ICONS = {
   "Emergency Funds": PiggyBank,
@@ -18,17 +19,16 @@ const GOAL_ICONS = {
   "House Deposit": Landmark,
 };
 
-function formatNaira(amount) {
-  return `₦${Number(amount || 0).toLocaleString("en-NG")}`;
-}
-
 export default function SavingsGoals() {
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNewGoal, setShowNewGoal] = useState(false);
   const [name, setName] = useState("");
   const [target, setTarget] = useState("");
+  const [initialAmount, setInitialAmount] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [addingFundsTo, setAddingFundsTo] = useState(null);
+  const { formatCurrency, settings } = useSettings();
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -58,8 +58,15 @@ export default function SavingsGoals() {
   async function handleCreateGoal(e) {
     e.preventDefault();
     const numericTarget = Number(target);
-    if (!name.trim() || !numericTarget || numericTarget <= 0) {
-      alert("Please enter a goal name and a valid target amount");
+    const numericInitialAmount = Number(initialAmount || 0);
+    if (
+      !name.trim() ||
+      !numericTarget ||
+      numericTarget <= 0 ||
+      numericInitialAmount < 0 ||
+      numericInitialAmount > numericTarget
+    ) {
+      alert("Enter a valid goal, target amount, and initial savings amount");
       return;
     }
 
@@ -68,17 +75,51 @@ export default function SavingsGoals() {
 
     setIsSubmitting(true);
     try {
-      await addDoc(
-        collection(getFirestore(), "users", user.uid, "savingsGoals"),
-        {
-          name: name.trim(),
-          target: numericTarget,
-          saved: 0,
-          createdAt: serverTimestamp(),
+      const db = getFirestore();
+      const batch = writeBatch(db);
+      const goalRef = doc(collection(db, "users", user.uid, "savingsGoals"));
+      const timestamp = serverTimestamp();
+
+      batch.set(goalRef, {
+        name: name.trim(),
+        target: numericTarget,
+        saved: numericInitialAmount,
+        createdAt: timestamp,
+      });
+
+      if (numericInitialAmount > 0) {
+        const transactionRef = doc(
+          collection(db, "users", user.uid, "transactions")
+        );
+        const notificationRef = doc(
+          collection(db, "users", user.uid, "notifications")
+        );
+
+        batch.update(doc(db, "users", user.uid), {
+          balance: increment(-numericInitialAmount),
+        });
+        batch.set(transactionRef, {
+          title: "Savings added",
+          category: "Savings & Investments",
+          amount: -numericInitialAmount,
+          paymentMethod: "Savings transfer",
+          date: new Date().toISOString().slice(0, 10),
+          createdAt: timestamp,
+        });
+        if (settings.notifications.master && settings.notifications.savingsAdded) {
+          batch.set(notificationRef, {
+            title: "New savings added",
+            message: `-${formatCurrency(numericInitialAmount)} · ${name.trim()}`,
+            read: false,
+            createdAt: timestamp,
+          });
         }
-      );
+      }
+
+      await batch.commit();
       setName("");
       setTarget("");
+      setInitialAmount("");
       setShowNewGoal(false);
     } catch (err) {
       alert(err.message);
@@ -87,7 +128,7 @@ export default function SavingsGoals() {
     }
   }
 
-  async function handleAddFunds(goalId, currentSaved) {
+  async function handleAddFunds(goalId, goalName) {
     const input = prompt("How much would you like to add to this goal?");
     const amount = Number(input);
     if (!input || isNaN(amount) || amount <= 0) return;
@@ -95,13 +136,46 @@ export default function SavingsGoals() {
     const user = auth.currentUser;
     if (!user) return;
 
+    setAddingFundsTo(goalId);
     try {
-      await updateDoc(
-        doc(getFirestore(), "users", user.uid, "savingsGoals", goalId),
-        { saved: currentSaved + amount }
+      const db = getFirestore();
+      const batch = writeBatch(db);
+      const goalRef = doc(db, "users", user.uid, "savingsGoals", goalId);
+      const userRef = doc(db, "users", user.uid);
+      const transactionRef = doc(collection(db, "users", user.uid, "transactions"));
+      const notificationRef = doc(
+        collection(db, "users", user.uid, "notifications")
       );
+
+      // Keep all four views in sync with one atomic Firestore write.
+      batch.update(goalRef, { saved: increment(amount) });
+      batch.update(userRef, { balance: increment(-amount) });
+
+      if (settings.privacy.saveHistory) {
+        batch.set(transactionRef, {
+          title: `Added to ${goalName}`,
+          category: "Savings & Investments",
+          amount: -amount,
+          paymentMethod: "Savings transfer",
+          date: new Date().toISOString().slice(0, 10),
+          createdAt: serverTimestamp(),
+        });
+      }
+
+      if (settings.notifications.master && settings.notifications.savingsAdded) {
+        batch.set(notificationRef, {
+          title: "Savings added",
+          message: `-${formatCurrency(amount)} · ${goalName}`,
+          read: false,
+          createdAt: serverTimestamp(),
+        });
+      }
+
+      await batch.commit();
     } catch (err) {
       alert(err.message);
+    } finally {
+      setAddingFundsTo(null);
     }
   }
 
@@ -122,10 +196,10 @@ export default function SavingsGoals() {
       </div>
 
       {/* Total Saved card */}
-      <div className="rounded-3xl bg-gradient-to-br from-orange-400 to-orange-600 px-8 py-7 text-white mb-10 flex items-center justify-between">
+      <div className="rounded-3xl bg-linear-to-br from-orange-400 to-orange-600 px-8 py-7 text-white mb-10 flex items-center justify-between">
         <div>
           <p className="text-sm font-medium opacity-90 mb-1">Total Saved</p>
-          <p className="text-3xl font-bold">{formatNaira(totalSaved)}</p>
+          <p className="text-3xl font-bold">{formatCurrency(totalSaved)}</p>
         </div>
         <PiggyBank size={40} className="opacity-90" />
       </div>
@@ -151,9 +225,11 @@ export default function SavingsGoals() {
               <button
                 key={goal.id}
                 type="button"
-                onClick={() => handleAddFunds(goal.id, goal.saved || 0)}
+                onClick={() => handleAddFunds(goal.id, goal.name)}
+                disabled={addingFundsTo === goal.id}
                 className="w-full flex items-center gap-4 rounded-2xl border border-neutral-200
-                           px-5 py-4 text-left hover:border-orange-300 transition-colors"
+                           px-5 py-4 text-left hover:border-orange-300 transition-colors
+                           disabled:cursor-wait disabled:opacity-60"
               >
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-100 text-orange-600">
                   <Icon size={18} />
@@ -164,12 +240,12 @@ export default function SavingsGoals() {
                   </p>
                   <div className="h-1.5 w-full rounded-full bg-neutral-100 mb-1">
                     <div
-                      className="h-1.5 rounded-full bg-orange-500"
+                      className="h-1.5 rounded-full bg-orange-500 transition-all duration-700 ease-out"
                       style={{ width: `${percent}%` }}
                     />
                   </div>
                   <p className="text-xs text-neutral-500">
-                    {formatNaira(goal.saved || 0)}/{formatNaira(goal.target)}
+                    {formatCurrency(goal.saved || 0)}/{formatCurrency(goal.target)}
                   </p>
                 </div>
                 <span className="text-sm font-semibold text-neutral-700">
@@ -222,7 +298,23 @@ export default function SavingsGoals() {
                   onChange={(e) => setTarget(e.target.value)}
                   type="number"
                   min="0"
-                  placeholder="₦ 0.00"
+                  placeholder="Amount"
+                  disabled={isSubmitting}
+                  className="w-full rounded-full border border-neutral-300 px-5 py-3
+                             text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-neutral-900 mb-2">
+                  Amount to save now
+                </label>
+                <input
+                  value={initialAmount}
+                  onChange={(e) => setInitialAmount(e.target.value)}
+                  type="number"
+                  min="0"
+                  max={target || undefined}
+                  placeholder="Amount"
                   disabled={isSubmitting}
                   className="w-full rounded-full border border-neutral-300 px-5 py-3
                              text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"

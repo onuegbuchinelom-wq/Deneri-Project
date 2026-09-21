@@ -1,6 +1,33 @@
 @import "tailwindcss";
 @theme { --font-sans: "Plus Jakarta Sans", sans-serif; } 
 
+html.dashboard-dark body {
+  background: #171717;
+  color: #f5f5f5;
+}
+
+html.dashboard-dark .bg-white { background-color: #262626; }
+html.dashboard-dark .bg-neutral-50 { background-color: #171717; }
+html.dashboard-dark .bg-neutral-100 { background-color: #404040; }
+html.dashboard-dark .bg-neutral-200 { background-color: #525252; }
+html.dashboard-dark .bg-orange-50 { background-color: #431407; }
+html.dashboard-dark .bg-orange-100 { background-color: #7c2d12; }
+html.dashboard-dark .bg-red-50 { background-color: #450a0a; }
+html.dashboard-dark .bg-green-50 { background-color: #052e16; }
+html.dashboard-dark .border-neutral-200,
+html.dashboard-dark .border-neutral-300 { border-color: #525252; }
+html.dashboard-dark .text-neutral-900 { color: #f5f5f5; }
+html.dashboard-dark .text-neutral-800 { color: #e5e5e5; }
+html.dashboard-dark .text-neutral-700 { color: #d4d4d4; }
+html.dashboard-dark .text-neutral-600 { color: #a3a3a3; }
+html.dashboard-dark .text-neutral-500,
+html.dashboard-dark .text-neutral-400 { color: #a3a3a3; }
+html.dashboard-dark input,
+html.dashboard-dark select,
+html.dashboard-dark textarea { background-color: #262626; color: #f5f5f5; }
+html.dashboard-dark input::placeholder,
+html.dashboard-dark textarea::placeholder { color: #a3a3a3; }
+
 /*
   Splash screen loop (2.2s cycle):
   - 0%        Logo hidden (sunk into orange), tagline visible

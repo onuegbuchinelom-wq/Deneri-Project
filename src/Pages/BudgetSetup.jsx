@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../Config/firebase";
+import { useSettings } from "../Components/SettingsProvider";
 import { getFirestore, doc, setDoc } from "firebase/firestore";
 import {
   Car,
@@ -23,10 +24,6 @@ const PRIORITY_OPTIONS = [
   { key: "Savings & Investments", label: "Savings & Investment", sub: "Build your future", icon: PiggyBank },
 ];
 
-function formatNaira(amount) {
-  return `₦${Number(amount || 0).toLocaleString("en-NG")}`;
-}
-
 export default function BudgetSetup() {
   const [step, setStep] = useState(1);
   const [income, setIncome] = useState(INCOME_PRESETS[1]);
@@ -38,6 +35,7 @@ export default function BudgetSetup() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const navigate = useNavigate();
+  const { formatCurrency } = useSettings();
 
   function togglePriority(key) {
     setPriorities((prev) => {
@@ -72,7 +70,12 @@ export default function BudgetSetup() {
     try {
       await setDoc(
         doc(getFirestore(), "users", user.uid),
-        { budget: { total: monthlyTotal, categories } },
+        {
+          budget: { total: monthlyTotal, categories },
+          // Home's balance starts at the budget total, then AddExpense.jsx
+          // decrements it as expenses are logged.
+          balance: monthlyTotal,
+        },
         { merge: true }
       );
       navigate("/dashboard/budget");
@@ -97,7 +100,7 @@ export default function BudgetSetup() {
 
           <div className="mx-auto mb-8 flex h-32 w-32 items-center justify-center rounded-full border-4 border-orange-400">
             <span className="text-sm font-semibold text-neutral-800 px-2 text-center">
-              {formatNaira(customIncome || income)}
+              {formatCurrency(customIncome || income)}
             </span>
           </div>
 
@@ -116,7 +119,7 @@ export default function BudgetSetup() {
                     : "bg-orange-50 text-neutral-700 hover:bg-orange-100"
                 }`}
               >
-                ₦{preset / 1000}k
+                {formatCurrency(preset)}
               </button>
             ))}
             <input

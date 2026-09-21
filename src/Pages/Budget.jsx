@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../Config/firebase";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { useSettings } from "../Components/SettingsProvider";
+import { getFirestore, doc, onSnapshot } from "firebase/firestore";
 import { Home as HomeIcon, Car, Utensils, Gamepad2, PiggyBank } from "lucide-react";
 
 const CATEGORY_ICONS = {
@@ -12,34 +13,34 @@ const CATEGORY_ICONS = {
   "Savings & Investments": PiggyBank,
 };
 
-function formatNaira(amount) {
-  return `₦${Number(amount || 0).toLocaleString("en-NG")}`;
-}
-
 export default function Budget() {
   const [budget, setBudget] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { formatCurrency } = useSettings();
 
   useEffect(() => {
-    async function loadBudget() {
-      const user = auth.currentUser;
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-      try {
-        const snap = await getDoc(doc(getFirestore(), "users", user.uid));
-        if (snap.exists() && snap.data().budget) {
-          setBudget(snap.data().budget);
-        }
-      } catch (err) {
-        console.error("Failed to load budget:", err.message);
-      } finally {
-        setLoading(false);
-      }
+    const user = auth.currentUser;
+    if (!user) {
+      setLoading(false);
+      return;
     }
-    loadBudget();
+
+    // Live listener — bars update in real time as spending changes,
+    // even while you're sitting on this page.
+    const unsubscribe = onSnapshot(
+      doc(getFirestore(), "users", user.uid),
+      (snap) => {
+        setBudget(snap.exists() ? snap.data().budget || null : null);
+        setLoading(false);
+      },
+      (err) => {
+        console.error("Failed to load budget:", err.message);
+        setLoading(false);
+      }
+    );
+
+    return unsubscribe;
   }, []);
 
   if (loading) {
@@ -98,24 +99,24 @@ export default function Budget() {
       </div>
 
       {/* Overall Budget card */}
-      <div className="rounded-3xl bg-gradient-to-br from-orange-400 to-orange-600 px-8 py-7 text-white mb-10">
+      <div className="rounded-3xl bg-linear-to-br from-orange-400 to-orange-600 px-8 py-7 text-white mb-10">
         <p className="text-sm font-medium opacity-90 mb-2">Overall Budget</p>
         <p className="text-3xl font-bold mb-4">
-          {formatNaira(totalSpent)}{" "}
+          {formatCurrency(totalSpent)}{" "}
           <span className="text-lg font-medium opacity-80">
-            of {formatNaira(total)}
+            of {formatCurrency(total)}
           </span>
         </p>
 
-        <div className="h-2 w-full rounded-full bg-white/30 mb-2">
+        <div className="h-2 w-full rounded-full bg-white/30 mb-2 overflow-hidden">
           <div
-            className="h-2 rounded-full bg-white"
+            className="h-2 rounded-full bg-white transition-all duration-700 ease-out"
             style={{ width: `${percent}%` }}
           />
         </div>
 
         <div className="flex items-center justify-between text-xs opacity-90">
-          <span>Remaining {formatNaira(remaining)}</span>
+          <span>Remaining {formatCurrency(remaining)}</span>
           <span>{percent}%</span>
         </div>
       </div>
@@ -141,15 +142,15 @@ export default function Budget() {
                 <p className="text-sm font-semibold text-neutral-900 mb-1">
                   {name}
                 </p>
-                <div className="h-1.5 w-full rounded-full bg-neutral-100">
+                <div className="h-1.5 w-full rounded-full bg-neutral-100 overflow-hidden">
                   <div
-                    className="h-1.5 rounded-full bg-orange-500"
+                    className="h-1.5 rounded-full bg-orange-500 transition-all duration-700 ease-out"
                     style={{ width: `${catPercent}%` }}
                   />
                 </div>
               </div>
               <span className="text-xs text-neutral-500 whitespace-nowrap">
-                {formatNaira(spent)}/{formatNaira(limit)}
+                {formatCurrency(spent)}/{formatCurrency(limit)}
               </span>
             </div>
           );

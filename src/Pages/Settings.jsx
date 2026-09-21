@@ -31,7 +31,7 @@ const SETTINGS_ITEMS = [
     to: "/dashboard/settings/privacy",
   },
   {
-    label: "security",
+    label: "Security",
     sub: "Change Pin and Biometric",
     icon: ShieldCheck,
     to: "/dashboard/settings/security",

@@ -1,15 +1,16 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { auth } from "../Config/firebase";
+import { useSettings } from "../Components/SettingsProvider";
 import {
   getFirestore,
   doc,
   getDoc,
-  updateDoc,
   collection,
-  addDoc,
+  getDocs,
   serverTimestamp,
   increment,
+  writeBatch,
 } from "firebase/firestore";
 
 const CATEGORIES = [
@@ -21,6 +22,8 @@ const CATEGORIES = [
   "Income",
 ];
 
+const PAYMENT_METHODS = ["Cash", "Bank Transfer", "Card"];
+
 export default function AddExpense() {
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState(CATEGORIES[0]);
@@ -28,10 +31,40 @@ export default function AddExpense() {
     new Date().toISOString().slice(0, 10) // yyyy-mm-dd, defaults to today
   );
   const [paymentMethod, setPaymentMethod] = useState("");
+  const [bankAccounts, setBankAccounts] = useState([]);
+  const [cards, setCards] = useState([]);
+  const [loadingPaymentOptions, setLoadingPaymentOptions] = useState(true);
+  const [selectedBankAccountId, setSelectedBankAccountId] = useState("");
+  const [selectedCardId, setSelectedCardId] = useState("");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const navigate = useNavigate();
+  const { formatCurrency, settings } = useSettings();
+
+  useEffect(() => {
+    async function loadPaymentOptions() {
+      const user = auth.currentUser;
+      if (!user) {
+        setLoadingPaymentOptions(false);
+        return;
+      }
+      try {
+        const db = getFirestore();
+        const [bankSnap, cardSnap] = await Promise.all([
+          getDocs(collection(db, "users", user.uid, "bankAccounts")),
+          getDocs(collection(db, "users", user.uid, "cards")),
+        ]);
+        setBankAccounts(bankSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        setCards(cardSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      } catch (err) {
+        console.error("Failed to load payment options:", err.message);
+      } finally {
+        setLoadingPaymentOptions(false);
+      }
+    }
+    loadPaymentOptions();
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -52,30 +85,69 @@ export default function AddExpense() {
     const signedAmount =
       category === "Income" ? numericAmount : -numericAmount;
 
+    // Build a readable payment method label, e.g. "GTBank •••• 8785" or "Visa •••• 4321"
+    let resolvedPaymentMethod = paymentMethod;
+    if (paymentMethod === "Bank Transfer") {
+      const acc = bankAccounts.find((a) => a.id === selectedBankAccountId);
+      if (!acc) {
+        alert("Please select a bank account");
+        return;
+      }
+      resolvedPaymentMethod = `${acc.bankName} •••• ${String(
+        acc.accountNumber
+      ).slice(-4)}`;
+    } else if (paymentMethod === "Card") {
+      const card = cards.find((c) => c.id === selectedCardId);
+      if (!card) {
+        alert("Please select a card");
+        return;
+      }
+      resolvedPaymentMethod = `${card.nickname} •••• ${card.last4}`;
+    }
+
     setIsSubmitting(true);
     try {
       const db = getFirestore();
       const userRef = doc(db, "users", user.uid);
-
-      await addDoc(collection(db, "users", user.uid, "transactions"), {
-        title: notes.trim() || category,
-        category,
-        amount: signedAmount,
-        paymentMethod,
-        date,
-        createdAt: serverTimestamp(),
-      });
-
       const userSnap = await getDoc(userRef);
       const userData = userSnap.exists() ? userSnap.data() : {};
+      const batch = writeBatch(db);
+      const timestamp = serverTimestamp();
+      const transactionRef = doc(
+        collection(db, "users", user.uid, "transactions")
+      );
+      const notificationRef = doc(
+        collection(db, "users", user.uid, "notifications")
+      );
 
-      const updates = {};
+      if (settings.privacy.saveHistory) {
+        batch.set(transactionRef, {
+          title: notes.trim() || category,
+          category,
+          amount: signedAmount,
+          paymentMethod: resolvedPaymentMethod,
+          date,
+          createdAt: timestamp,
+        });
+      }
 
-      // Balance
-      updates.balance =
-        typeof userData.balance === "number"
-          ? increment(signedAmount)
-          : signedAmount;
+      // Notify the user that this transaction was logged
+      const isIncome = category === "Income";
+      if (settings.notifications.master && settings.notifications.expenseAdded) {
+        batch.set(notificationRef, {
+          title: isIncome ? "Income added" : "Expense added",
+          message: `${isIncome ? "+" : "-"}${formatCurrency(numericAmount)} · ${notes.trim() || category}`,
+          read: false,
+          createdAt: timestamp,
+        });
+      }
+
+      const updates = {
+        balance:
+          typeof userData.balance === "number"
+            ? increment(signedAmount)
+            : signedAmount,
+      };
 
       // Only expenses (not Income) count against a budget category.
       // Only update it if that category actually exists in the saved budget,
@@ -86,7 +158,8 @@ export default function AddExpense() {
         );
       }
 
-      await updateDoc(userRef, updates);
+      batch.update(userRef, updates);
+      await batch.commit();
 
       navigate("/dashboard");
     } catch (err) {
@@ -183,18 +256,104 @@ export default function AddExpense() {
           >
             Payment method
           </label>
-          <input
+          <select
             id="paymentMethod"
             value={paymentMethod}
-            onChange={(e) => setPaymentMethod(e.target.value)}
-            type="text"
-            placeholder="e.g. GTB.....8785"
+            onChange={(e) => {
+              setPaymentMethod(e.target.value);
+              setSelectedBankAccountId("");
+              setSelectedCardId("");
+            }}
             disabled={isSubmitting}
+            required
             className="w-full rounded-full border border-neutral-300 px-6 py-3.5
-                       text-base text-neutral-800 placeholder:text-neutral-400
+                       text-base text-neutral-800
                        focus:outline-none focus:ring-2 focus:ring-orange-400
                        disabled:bg-neutral-50"
-          />
+          >
+            <option value="" disabled>
+              Select payment method
+            </option>
+            {PAYMENT_METHODS.map((method) => (
+              <option key={method} value={method}>
+                {method}
+              </option>
+            ))}
+          </select>
+
+          {/* Bank Transfer: pick a saved bank account, or prompt to add one */}
+          {paymentMethod === "Bank Transfer" && !loadingPaymentOptions && (
+            <div className="mt-3">
+              {bankAccounts.length === 0 ? (
+                <p className="text-sm text-neutral-500 px-2">
+                  You haven't added a bank account yet.{" "}
+                  <Link
+                    to="/dashboard/profile/bank-accounts"
+                    className="font-semibold text-orange-600 hover:underline"
+                  >
+                    Add one in Profile →
+                  </Link>
+                </p>
+              ) : (
+                <select
+                  value={selectedBankAccountId}
+                  onChange={(e) => setSelectedBankAccountId(e.target.value)}
+                  disabled={isSubmitting}
+                  required
+                  className="w-full rounded-full border border-neutral-300 px-6 py-3.5
+                             text-base text-neutral-800
+                             focus:outline-none focus:ring-2 focus:ring-orange-400
+                             disabled:bg-neutral-50"
+                >
+                  <option value="" disabled>
+                    Select a bank account
+                  </option>
+                  {bankAccounts.map((acc) => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.bankName} •••• {String(acc.accountNumber).slice(-4)}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
+
+          {/* Card: pick a saved card, or prompt to add one */}
+          {paymentMethod === "Card" && !loadingPaymentOptions && (
+            <div className="mt-3">
+              {cards.length === 0 ? (
+                <p className="text-sm text-neutral-500 px-2">
+                  You haven't added a card yet.{" "}
+                  <Link
+                    to="/dashboard/profile/bank-accounts"
+                    className="font-semibold text-orange-600 hover:underline"
+                  >
+                    Add one in Profile →
+                  </Link>
+                </p>
+              ) : (
+                <select
+                  value={selectedCardId}
+                  onChange={(e) => setSelectedCardId(e.target.value)}
+                  disabled={isSubmitting}
+                  required
+                  className="w-full rounded-full border border-neutral-300 px-6 py-3.5
+                             text-base text-neutral-800
+                             focus:outline-none focus:ring-2 focus:ring-orange-400
+                             disabled:bg-neutral-50"
+                >
+                  <option value="" disabled>
+                    Select a card
+                  </option>
+                  {cards.map((card) => (
+                    <option key={card.id} value={card.id}>
+                      {card.nickname} •••• {card.last4}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
         </div>
 
         <div>

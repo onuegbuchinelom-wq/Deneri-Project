@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../Config/firebase";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { useSettings } from "../Components/SettingsProvider";
+import { getFirestore, doc, collection, onSnapshot } from "firebase/firestore";
 import {
   Settings,
   User as UserIcon,
   CreditCard,
   Landmark,
-  Shield,
   HelpCircle,
   UserPlus,
   ChevronRight,
@@ -17,14 +17,9 @@ const MENU_ITEMS = [
   { label: "Personal information", icon: UserIcon, to: "/dashboard/profile/personal-info" },
   { label: "Linked device", icon: CreditCard, to: "/dashboard/profile/linked-devices" },
   { label: "Bank accounts", icon: Landmark, to: "/dashboard/profile/bank-accounts" },
-  { label: "security", icon: Shield, to: "/dashboard/settings/security" },
   { label: "Help & support", icon: HelpCircle, to: "/dashboard/profile/help" },
   { label: "Invite friends", icon: UserPlus, to: "/dashboard/profile/invite" },
 ];
-
-function formatNaira(amount) {
-  return `₦${Number(amount || 0).toLocaleString("en-NG")}`;
-}
 
 export default function Profile() {
   const [fullName, setFullName] = useState("");
@@ -33,32 +28,67 @@ export default function Profile() {
   const [totalSavings, setTotalSavings] = useState(0);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { formatCurrency, settings } = useSettings();
 
   useEffect(() => {
-    async function loadProfile() {
-      const user = auth.currentUser;
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-      try {
-        const snap = await getDoc(doc(getFirestore(), "users", user.uid));
+    const user = auth.currentUser;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    const db = getFirestore();
+    let userLoaded = false;
+    let savingsLoaded = false;
+    function maybeStopLoading() {
+      if (userLoaded && savingsLoaded) setLoading(false);
+    }
+
+    // Profile + balance — live
+    const unsubUser = onSnapshot(
+      doc(db, "users", user.uid),
+      (snap) => {
         if (snap.exists()) {
           const data = snap.data();
           setFullName(data.fullName || "");
           setPhotoURL(data.photoURL || null);
           setBalance(data.balance || 0);
-
-          const goals = data.savingsGoalsTotal;
-          setTotalSavings(typeof goals === "number" ? goals : 0);
         }
-      } catch (err) {
+        userLoaded = true;
+        maybeStopLoading();
+      },
+      (err) => {
         console.error("Failed to load profile:", err.message);
-      } finally {
-        setLoading(false);
+        userLoaded = true;
+        maybeStopLoading();
       }
-    }
-    loadProfile();
+    );
+
+    // Total savings — summed live from the actual savingsGoals subcollection,
+    // the same source of truth SavingsGoals.jsx uses. There is no separate
+    // "savingsGoalsTotal" field anywhere, so we must compute it here too.
+    const unsubSavings = onSnapshot(
+      collection(db, "users", user.uid, "savingsGoals"),
+      (snap) => {
+        const total = snap.docs.reduce(
+          (sum, d) => sum + (d.data().saved || 0),
+          0
+        );
+        setTotalSavings(total);
+        savingsLoaded = true;
+        maybeStopLoading();
+      },
+      (err) => {
+        console.error("Failed to load savings goals:", err.message);
+        savingsLoaded = true;
+        maybeStopLoading();
+      }
+    );
+
+    return () => {
+      unsubUser();
+      unsubSavings();
+    };
   }, []);
 
   return (
@@ -106,15 +136,17 @@ export default function Profile() {
         <div className="rounded-2xl border border-neutral-200 px-5 py-4">
           <p className="text-xs text-neutral-500 mb-1">Total balance</p>
           <p className="text-lg font-bold text-neutral-900">
-            {loading ? "…" : formatNaira(balance)}
+            {loading ? "…" : formatCurrency(balance)}
           </p>
         </div>
-        <div className="rounded-2xl border border-neutral-200 px-5 py-4">
-          <p className="text-xs text-neutral-500 mb-1">Total savings</p>
-          <p className="text-lg font-bold text-neutral-900">
-            {loading ? "…" : formatNaira(totalSavings)}
-          </p>
-        </div>
+        {settings.privacy.showSavings && (
+          <div className="rounded-2xl border border-neutral-200 px-5 py-4">
+            <p className="text-xs text-neutral-500 mb-1">Total savings</p>
+            <p className="text-lg font-bold text-neutral-900">
+              {loading ? "…" : formatCurrency(totalSavings)}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Menu */}
